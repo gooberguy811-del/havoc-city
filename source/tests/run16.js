@@ -1,0 +1,53 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2];
+(async () => {
+  const html = fs.readFileSync(SP + '/test/dbg.html', 'utf8');
+  fs.writeFileSync(SP + '/test/index.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>' + html + '</body></html>');
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const errs = [];
+  page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + e.stack));
+  await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+  await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await page.route('**/fonts.gstatic.com/**', r => r.abort());
+  await page.goto('file://' + SP + '/test/index.html'); await page.waitForTimeout(1500);
+  await page.click('.mapcard[data-map="perth"]'); await page.waitForTimeout(300);
+  await page.screenshot({ path: SP + '/test/b0-menu.png' });
+  await page.evaluate(() => { Object.assign(window.__havoc.settings, { time: 'day', quality: 'medium', trafficDensity: 50, pedDensity: 50 }); });
+  await page.click('#playBtn'); await page.waitForTimeout(3500);
+  console.log('world', await page.evaluate(() => { const H = window.__havoc, W = H.getW(); const k = {}; for (const v of H.VEH.list) k[v.kind] = (k[v.kind] || 0) + 1; return JSON.stringify({ nodes: W.nodes.length, edges: W.edges.length, blocks: W.blocks.length, bldgs: W.bldgs.length, props: W.props.length, trees: W.trees.length, deadEnds: W.nodes.filter(n => n.deg === 1).length, vehicles: k, peds: H.PED.list.filter(p => p.active).length }); }));
+  await page.screenshot({ path: SP + '/test/b1-start.png' });
+  const shot = async (name, pos, look) => { await page.evaluate(([p, l]) => { window.__havoc.CAM.free = [p, l]; }, [pos, look]); await page.waitForTimeout(700); await page.screenshot({ path: SP + '/test/' + name + '.png' }); };
+  await page.evaluate(() => { const P = window.__havoc.G.player; P.place(60, -20, Math.PI, 0); });
+  await shot('b2-skyline', [180, 70, 230], [40, 20, -60]);
+  await page.evaluate(() => { const P = window.__havoc.G.player; P.place(-200, -55, 0, 0); });
+  await shot('b3-kingspark', [-120, 55, 140], [-230, 0, -40]);
+  await page.evaluate(() => { const P = window.__havoc.G.player; P.place(420, -20, 0, 0); });
+  await shot('b4-stadium', [270, 60, 80], [440, 5, -40]);
+  await page.evaluate(() => { const P = window.__havoc.G.player; P.place(-505, -60, 0, 0); });
+  await shot('b5-cottesloe', [-470, 30, 40], [-560, 0, -120]);
+  // parked car must stay still
+  await page.evaluate(() => { const H = window.__havoc; H.CAM.free = null; const P = H.G.player; P.place(-20, 330, Math.PI / 2, 0); window.__pc = H.VEH.list.find(v => v.kind === 'parked'); });
+  await page.keyboard.press('KeyF'); await page.waitForTimeout(400);
+  const before = await page.evaluate(() => { const H = window.__havoc, c = H.VEH.list.find(v => v.abandoned); window.__ab = c; return [c.x, c.z]; });
+  await page.waitForTimeout(5000);
+  const after = await page.evaluate(() => { const c = window.__ab; return [c.x, c.z]; });
+  console.log('abandoned car drift (m):', Math.hypot(after[0] - before[0], after[1] - before[1]).toFixed(3));
+  // drive into the Swan River from the South Perth foreshore
+  await page.keyboard.press('KeyF'); await page.waitForTimeout(2500);
+  await page.evaluate(() => { const P = window.__havoc.G.player; P.place(100, 300, Math.PI, 0); P.vz = -18; });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => { const H = window.__havoc; H.CAM.free = [[120, 12, 300], [100, 0, 262]]; });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: SP + '/test/b6-splash.png' });
+  await page.evaluate(() => { window.__havoc.CAM.free = null; });
+  for (let i = 0; i < 40; i++) { await page.waitForTimeout(150); if (await page.evaluate(() => window.__havoc.G.onFoot)) break; }
+  await page.waitForTimeout(800);
+  console.log('after river', await page.evaluate(() => { const H = window.__havoc, F = H.PF(); return JSON.stringify({ onFoot: H.G.onFoot, swim: H.HERO.swim, y: F.y.toFixed(2), down: H.G.down, sunk: H.VEH.list.filter(v => v.sunk).length }); }));
+  await page.screenshot({ path: SP + '/test/b7-swim.png' });
+  console.log('perf', await page.evaluate(() => window.__havoc.PERF.upd.toFixed(2)));
+  console.log('errors:', errs.length); console.log(errs.slice(0, 8).join('\n'));
+  await browser.close();
+})();

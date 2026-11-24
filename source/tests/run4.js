@@ -1,0 +1,35 @@
+const { chromium, devices } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2];
+(async () => {
+  const html = fs.readFileSync(SP + '/havoc/havoc-city.html', 'utf8');
+  fs.writeFileSync(SP + '/test/index.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>' + html + '</body></html>');
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const errs = [];
+  const setup = async (page) => {
+    page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+    page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + e.stack));
+    await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+    await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+    await page.route('**/fonts.gstatic.com/**', r => r.abort());
+    await page.goto('file://' + SP + '/test/index.html'); await page.waitForTimeout(1500);
+  };
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await setup(page);
+  await page.screenshot({ path: SP + '/test/40-menu.png' });
+  await page.click('#garageBtn'); await page.waitForTimeout(800);
+  await page.evaluate(() => { const H = window.__havoc; H.setCar('body', 'brute'); });
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: SP + '/test/41-garage-brute.png' });
+  await page.evaluate(() => { const H = window.__havoc; H.setCar('body', 'viper'); });
+  await page.close();
+  const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+  const m = await ctx.newPage(); await setup(m);
+  await m.screenshot({ path: SP + '/test/42-m-menu.png' });
+  await m.tap('#garageBtn'); await m.waitForTimeout(800); await m.screenshot({ path: SP + '/test/43-m-garage.png' });
+  await m.tap('#garageDrive'); await m.waitForTimeout(3500); await m.screenshot({ path: SP + '/test/44-m-game.png' });
+  const ctx2 = await browser.newContext({ ...devices['iPhone 13 landscape'] });
+  const l = await ctx2.newPage(); await setup(l); await l.tap('#playBtn'); await l.waitForTimeout(3500); await l.screenshot({ path: SP + '/test/45-l-game.png' });
+  console.log('errors:', errs.length); console.log(errs.slice(0, 10).join('\n'));
+  await browser.close();
+})();

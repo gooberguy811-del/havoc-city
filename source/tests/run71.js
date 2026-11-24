@@ -1,0 +1,34 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2], MAP = process.argv[3] || 'neon';
+(async () => {
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const mock = fs.readFileSync(SP + '/test/mockroom.js', 'utf8');
+  const errs = [];
+  const mk = async tag => {
+    const ctx = await browser.newContext({ viewport: { width: 800, height: 450 } }); const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(tag + ' pageerror: ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 4).join(' | ')));
+    page.on('console', m => { if (m.type() === 'error' || /net|room|peer/i.test(m.text())) errs.push(tag + ' ' + m.type() + ' ' + m.text()); });
+    await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+    await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+    await page.route('**/fonts.gstatic.com/**', r => r.abort());
+    await page.addInitScript(mock);
+    return page;
+  };
+  const A = await mk('A'), B = await mk('B');
+  let nmsg = 0;
+  const relay = (from, to) => from.exposeFunction('__netOut', msg => { nmsg++; to.evaluate(m => window.__netIn && window.__netIn(m), msg).catch(() => { }); });
+  await relay(A, B); await relay(B, A);
+  const start = async P => { await P.goto('file://' + SP + '/test/index.html'); await P.waitForTimeout(800); await P.evaluate(m => Object.assign(window.__havoc.settings, { map: m, trafficDensity: 0, pedDensity: 0, slowmo: 'off', quality: 'low', time: 'day', police: 'off' }), MAP); await P.click(`.mapcard[data-map="${MAP}"]`); await P.click('#playBtn'); };
+  const waitFor = async (P, fn, ms, arg) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await P.evaluate(fn, arg)) return true; await P.waitForTimeout(250); } return false; };
+  await start(A); await A.waitForTimeout(1500); await start(B);
+  const okB = await waitFor(B, () => window.__havoc.NET.players.size > 0, 20000);
+  const okA = await waitFor(A, () => window.__havoc.NET.players.size > 0, 8000);
+  console.log('A sees', okA, 'B sees', okB, 'msgs', nmsg);
+  const st = P => P.evaluate(() => { const H = window.__havoc, N = H.NET; return JSON.stringify({ room: N.room && N.room.name, players: [...N.players.values()].map(p => ({ x: Math.round(p.x), z: Math.round(p.z), av: !!p.av, name: p.name })), me: H.PF() && [Math.round(H.PF().x), Math.round(H.PF().z)] }); });
+  await A.waitForTimeout(3000);
+  console.log('A', await st(A)); console.log('B', await st(B));
+  await B.screenshot({ path: `${SP}/test/mp71-B.png` });
+  console.log('errors', errs.length, errs.slice(0, 8).join('\n'));
+  await browser.close();
+})();

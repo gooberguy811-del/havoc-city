@@ -1,0 +1,42 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2];
+const steps = process.argv[3] || 'basic';
+(async () => {
+  const html = fs.readFileSync(SP + '/havoc/havoc-city.html', 'utf8');
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0;font:14px system-ui}[hidden]{display:none!important}</style></head><body>' + html + '</body></html>';
+  fs.writeFileSync(SP + '/test/index.html', doc);
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  const errs = [];
+  page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errs.push(m.type() + ': ' + m.text()); });
+  page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + e.stack));
+  await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+  await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await page.route('**/fonts.gstatic.com/**', r => r.abort());
+  await page.goto('file://' + SP + '/test/index.html');
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: SP + '/test/01-menu.png' });
+  const evalS = async (code) => { try { return await page.evaluate(code); } catch (e) { return 'ERR ' + e.message; } };
+  if (steps.includes('sand')) await page.click('.mapcard[data-map="sand"]');
+  if (steps.includes('garage')) { await page.click('#garageBtn'); await page.waitForTimeout(1500); await page.screenshot({ path: SP + '/test/02-garage.png' }); await page.click('#garageDrive'); }
+  else await page.click('#playBtn');
+  await page.waitForTimeout(3000);
+  await page.screenshot({ path: SP + '/test/03-start.png' });
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(3500);
+  await page.screenshot({ path: SP + '/test/04-driving.png' });
+  await page.keyboard.down('KeyA');
+  await page.waitForTimeout(1200);
+  await page.keyboard.up('KeyA');
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: SP + '/test/05-driving2.png' });
+  await page.keyboard.up('KeyW');
+  const info = await page.evaluate(() => {
+    return { fps: 0 };
+  });
+  await page.waitForTimeout(500);
+  fs.writeFileSync(SP + '/test/errs.txt', errs.join('\n'));
+  console.log('errors:', errs.length); console.log(errs.slice(0, 15).join('\n'));
+  await browser.close();
+})();

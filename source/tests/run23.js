@@ -1,0 +1,37 @@
+const { chromium, devices } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2];
+(async () => {
+  fs.writeFileSync(SP + '/test/index.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>' + fs.readFileSync(SP + '/test/dbg.html', 'utf8') + '</body></html>');
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const ctx = await browser.newContext({ ...devices['iPhone 13 landscape'] });
+  const page = await ctx.newPage();
+  const errs = [];
+  page.on('pageerror', e => errs.push('pageerror: ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+  await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+  await page.route('**/fonts.gstatic.com/**', r => r.abort());
+  await page.goto('file://' + SP + '/test/index.html'); await page.waitForTimeout(1000);
+  await page.evaluate(() => { Object.assign(window.__havoc.settings, { map: 'neon', trafficDensity: 0, pedDensity: 0, slowmo: 'off', quality: 'low' }); });
+  await page.evaluate(() => { document.querySelector('.mapcard[data-map="neon"]').click(); document.querySelector('#playBtn').click(); });
+  await page.waitForTimeout(2500);
+  const st = () => page.evaluate(() => { const H = window.__havoc, P = H.G.player, F = H.PF(); return JSON.stringify({ touch: document.querySelector('#ui').classList.contains('touch'), foot: H.G.onFoot, speed: +F.speed.toFixed(2), x: +F.x.toFixed(1), z: +F.z.toFixed(1), n2o: P ? +P.nitro.toFixed(2) : null, boost: P ? P.boosting : null, gasLit: document.querySelector('#touch [data-k=gas]').classList.contains('on'), gasLbl: document.querySelector('#touch [data-k=gas]').textContent, nLbl: document.querySelector('#touch [data-k=nitro]').textContent }); });
+  const hold = async (k, ms, sample) => {
+    const b = await page.$(`#touch [data-k=${k}]`); const bb = await b.boundingBox();
+    await page.evaluate(k => { const b = document.querySelector(`#touch [data-k=${k}]`); b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 7, pointerType: 'touch' })); }, k);
+    await page.waitForTimeout(ms / 2); if (sample) console.log('  mid', await st()); await page.waitForTimeout(ms / 2);
+    await page.evaluate(k => { const b = document.querySelector(`#touch [data-k=${k}]`); b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 7, pointerType: 'touch' })); }, k);
+  };
+  await page.evaluate(() => { const H = window.__havoc, s = H.SHOP.list[0], P = H.G.player; P.place(s.dx - Math.sin(s.fh) * 6, s.dz - Math.cos(s.fh) * 6, s.fh, 0); });
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => document.querySelector('#touch [data-k=enter]').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 8, pointerType: 'touch' })));
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => { const H = window.__havoc, s = H.SHOP.list[0], p = H.HERO.p; p.x = s.dx; p.z = s.dz; p.h = s.fh; });
+  await hold('nitro', 2600, false);
+  await page.waitForTimeout(1500);
+  console.log('mobile', await page.evaluate(() => { const H = window.__havoc, s = H.SHOP.list[0]; return JSON.stringify({ inside: H.SHOP.inside === s, rob: +s.rob.toFixed(2), prompt: document.querySelector('#prompt').textContent }); }));
+  await page.screenshot({ path: SP + '/test/m2-rob.png' });
+  console.log('errors', errs.length, errs.slice(0, 3).join('\n'));
+  await browser.close();
+})();

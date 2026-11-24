@@ -1,0 +1,4 @@
+source/out/
+node_modules/
+source/macapp/dist/
+.DS_Store

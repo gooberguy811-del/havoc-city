@@ -1,0 +1,50 @@
+const { chromium, devices } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2];
+(async () => {
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const errs = [];
+  const setup = async (page) => {
+    page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+    page.on('pageerror', e => errs.push('pageerror: ' + e.message + '\n' + e.stack));
+    await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+    await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+    await page.route('**/fonts.gstatic.com/**', r => r.abort());
+    await page.goto('file://' + SP + '/test/index.html'); await page.waitForTimeout(1500);
+  };
+  // desktop: garage customisation, Neon by day, police chase seen from behind
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+  await setup(page);
+  await page.evaluate(() => { const H = window.__havoc; H.settings.time = 'sunset'; H.settings.gore = 'low'; H.settings.map = 'neon'; });
+  await page.click('#garageBtn'); await page.waitForTimeout(500);
+  await page.click('.opt:has-text("Ranger")'); await page.waitForTimeout(300);
+  await page.click('#tab-style'); await page.click('.opt:has-text("GT wing")'); await page.click('.sw[aria-label="#22e0ff"]'); await page.click('.opt:has-text("Lifted")');
+  await page.click('#tab-paint'); await page.click('.sw[aria-label="#f5b700"]'); await page.click('.opt:has-text("Twin stripes")');
+  await page.click('#tab-wheels'); await page.click('.opt:has-text("Mesh")');
+  await page.waitForTimeout(600);
+  await page.screenshot({ path: SP + '/test/20-garage-ranger.png' });
+  await page.click('#tab-body'); await page.click('.opt:has-text("Comet R")'); await page.click('#tab-paint'); await page.click('.opt:has-text("Metallic")'); await page.click('.sw[aria-label="#1f4fd1"]');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: SP + '/test/21-garage-comet.png' });
+  await page.click('#garageDrive'); await page.waitForTimeout(3000);
+  await page.keyboard.down('KeyW'); await page.waitForTimeout(2000);
+  await page.evaluate(() => { window.__havoc.addHeat(2.5, 2, true); });
+  await page.waitForTimeout(7000);
+  await page.keyboard.up('KeyW');
+  await page.evaluate(() => { const H = window.__havoc; H.CAM.mode = 1; H.G.player.h += Math.PI; H.G.player.vx = 0; H.G.player.vz = 0; H.CAM.h = H.G.player.h; });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: SP + '/test/22-police.png' });
+  console.log('perf ms/update', await page.evaluate(() => window.__havoc.PERF.upd.toFixed(2)));
+  await page.keyboard.down('KeyD'); await page.keyboard.down('KeyW'); await page.keyboard.down('Space'); await page.waitForTimeout(1500);
+  await page.screenshot({ path: SP + '/test/23-drift.png' });
+  await page.keyboard.up('KeyD'); await page.keyboard.up('KeyW'); await page.keyboard.up('Space');
+  await page.close();
+  // mobile
+  const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+  const m = await ctx.newPage(); await setup(m);
+  await m.screenshot({ path: SP + '/test/30-m-menu.png' });
+  await m.tap('#garageBtn'); await m.waitForTimeout(800); await m.screenshot({ path: SP + '/test/31-m-garage.png' });
+  await m.tap('#garageDrive'); await m.waitForTimeout(3500); await m.screenshot({ path: SP + '/test/32-m-game.png' });
+  console.log('errors:', errs.length); console.log(errs.slice(0, 10).join('\n'));
+  await browser.close();
+})();

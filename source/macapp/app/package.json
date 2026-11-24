@@ -1,0 +1,8 @@
+{
+  "name": "havoc-city",
+  "productName": "Havoc City",
+  "version": "1.1.0",
+  "description": "Havoc City: an open-world driving game",
+  "main": "main.js",
+  "private": true
+}

@@ -1,0 +1,22 @@
+HAVOC CITY for Mac
+
+1. Drag "Havoc City" into your Applications folder, then double-click it.
+
+2. The first time, macOS says it can't verify the app. That's because it isn't
+   registered with Apple (that costs $99 a year), not because anything is wrong.
+   Click "Done", then open  System Settings > Privacy & Security,  scroll down
+   and click "Open Anyway" next to Havoc City. Enter your password.
+   From then on it opens normally.
+
+   Older macOS (Sonoma or earlier): right-click the app > Open > Open also works.
+
+3. If macOS instead says the app "is damaged and can't be opened", open the
+   Terminal app, paste this line and press Return, then open the game again:
+
+   xattr -cr "/Applications/Havoc City.app"
+
+The game updates itself: every time you open it, it loads the newest version from
+gooberguy811-del.github.io/havoc-city (and keeps a copy for playing offline).
+
+Online play uses the "Play online" code system (same as the HTML file version).
+Your progress and settings are saved on this Mac.
