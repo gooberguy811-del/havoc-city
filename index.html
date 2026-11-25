@@ -59,6 +59,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #touch [data-k=msl]{left:calc(var(--gutter-l) + 376px);bottom:calc(var(--bottom) + 168px);width:56px;height:56px;font-size:10px;background:rgba(255,77,94,.5)}
 #touch [data-k=lock]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 168px);width:56px;height:56px;font-size:10px;background:rgba(255,190,60,.35)}
 #touch [data-k=heal]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(210,47,60,.45)}
+#fps{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:30;font:700 12px/1 system-ui,sans-serif;color:#cfe8d0;background:rgba(10,12,16,.55);padding:4px 7px;border-radius:4px;pointer-events:none;font-variant-numeric:tabular-nums}
 #xhair{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45);pointer-events:none;z-index:2}
 #touch [data-k=hook]{left:calc(var(--gutter-l) + 250px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(240,240,240,.18)}
 #ui{position:fixed;inset:0;pointer-events:none;padding-left:var(--gutter-l);padding-right:var(--gutter-r);padding-block:var(--top) var(--bottom)}
@@ -436,6 +437,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="vignette" aria-hidden="true" hidden></div>
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
+    <div id="fps" hidden></div>
     <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>
@@ -575,7 +577,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
 };
 
-const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'day', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox' };
+const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'day', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox', autoRes: 'on', fps: 'off' };
 const settings = Object.assign({}, SETTINGS_DEF, store.get('havoc.settings', {}));
 const CAR_DEF = { body: 'viper', paint: '#d22f3c', finish: 'gloss', stripes: false, stripe: '#f4f4f4', rim: 'sport', rimColor: '#c9ccd2', wheel: 'm', spoiler: 'none', neon: 'off', tint: 1, height: 'stock', plate: 'HAVOC', engine: 2, handling: 2, brakes: 2, armor: 1, nitro: true };
 const carCfg = Object.assign({}, CAR_DEF, store.get('havoc.car', {}));
@@ -605,7 +607,7 @@ $('#stage').appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 1600);
 const scene = new THREE.Scene();
 
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3(), _c1 = new THREE.Color();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3(1, 1, 1);
 const UP = new THREE.Vector3(0, 1, 0);
 const _zeroM = new THREE.Matrix4().makeScale(0, 0, 0);
@@ -2193,7 +2195,8 @@ function lumpy(g, amt, seed) {
   }
   g.computeVertexNormals(); return g;
 }
-function treeGeo(type) {
+function treeGeo(type, lo) {
+  if (lo) return treeGeoLo(type);
   const P = [];
   if (type === 'oak') {   // trunk with a couple of limbs and a lumpy, two-tone crown
     const t = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 7); t.translate(0, 1.8, 0); P.push(colorize(t, C('#5a3e28')));
@@ -2229,6 +2232,40 @@ function treeGeo(type) {
     const stem = (r, h, x, y, z) => { const s = new THREE.CylinderGeometry(r, r * 1.08, h, seg, 3, true); s.translate(x, y + h / 2, z); P.push(rib(s, col)); const cap = new THREE.SphereGeometry(r, seg, 6, 0, TAU, 0, Math.PI / 2); cap.translate(x, y + h, z); P.push(rib(cap, col)); };
     stem(0.34, 3.4, 0, 0, 0); stem(0.22, 1.3, 0.78, 1.95, 0); stem(0.2, 1.0, -0.68, 1.6, 0);
     for (const [x, y, l] of [[0.42, 1.95, 0.62], [-0.38, 1.6, 0.52]]) { const c = new THREE.CylinderGeometry(0.2, 0.2, l, seg, 1, true); c.rotateZ(Math.PI / 2); c.translate(x, y, 0); P.push(rib(c, col)); const e = new THREE.SphereGeometry(0.2, seg, 8); e.translate(x * 1.85, y, 0); P.push(rib(e, col)); }
+  }
+  return mergeGeos(P);
+}
+// each frame: hide tree tiles beyond the fog, use the simple trees past the detail distance
+const TREE_DETAIL = { low: 70, medium: 115, high: 170 };
+function updateTreeTiles() {
+  const T = W && W.inst && W.inst.treeTiles; if (!T || !T.length) return;
+  const c = camera.position, far = scene.fog.far + 20, near = TREE_DETAIL[settings.quality] || 115;
+  for (const t of T) {
+    const d = Math.hypot(t.x - c.x, t.y - c.y, t.z - c.z) - t.r, vis = d < far, hi = vis && d < near;
+    if (t.hi.visible !== hi) t.hi.visible = hi; if (t.lo.visible !== (vis && !hi)) t.lo.visible = vis && !hi;
+  }
+}
+// the same trees with a fraction of the triangles, for tiles further than the detail distance
+function treeGeoLo(type) {
+  const P = [];
+  if (type === 'oak') {
+    const t = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 5, 1, true); t.translate(0, 1.8, 0); P.push(colorize(t, C('#5a3e28')));
+    for (const [x, y, z, r, col] of [[0, 4.8, 0, 2.6, '#3b6f2a'], [1.1, 5.4, 0.4, 1.7, '#4a8233'], [-1.0, 5.2, -0.4, 1.8, '#447b2f']]) {
+      const f = new THREE.IcosahedronGeometry(r, 1); { const uv = f.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 3, uv.getY(i) * 2); } f.scale(1, 0.86, 1); f.translate(x, y, z); P.push(colorize(f, C(col)));
+    }
+  } else if (type === 'palm') {
+    const s = new THREE.CylinderGeometry(0.12, 0.25, 8.4, 5, 1, true); s.rotateZ(-0.16); s.translate(0.7, 4.2, 0); P.push(colorize(s, C('#8f7049')));
+    const top = [1.35, 8.3];
+    for (let k = 0; k < 7; k++) { const fr = new THREE.BoxGeometry(0.55, 0.05, 2.8); fr.translate(0, 0, 1.4); fr.rotateX(0.35); fr.rotateY(k / 7 * TAU); fr.translate(top[0], top[1], 0); P.push(colorize(fr, C(['#3f8a3a', '#4c9a40', '#356f2e'][k % 3]))); }
+  } else if (type === 'pine') {
+    const t = new THREE.CylinderGeometry(0.18, 0.34, 11, 4, 1, true); t.translate(0, 5.5, 0); P.push(colorize(t, C('#5b4330')));
+    for (let k = 0; k < 3; k++) { const c = new THREE.ConeGeometry(2.4 - k * 0.6, 3, 6, 1, true); c.translate(0, 4 + k * 2.6, 0); P.push(colorize(c, C(k % 2 ? '#2f5b37' : '#36663d'))); }
+  } else if (type === 'rock') {
+    const r = new THREE.IcosahedronGeometry(1, 0); r.scale(0.85, 0.55, 0.7); r.translate(0, 0.4, 0); P.push(colorize(r, C('#9b7d5c')));
+  } else {   // cactus
+    const col = C('#4f7d3a');
+    for (const [r, h, x, y] of [[0.34, 3.6, 0, 0], [0.22, 1.4, 0.78, 1.95], [0.2, 1.1, -0.68, 1.6]]) { const st = new THREE.CylinderGeometry(r * 0.8, r, h, 6); st.translate(x, y + h / 2, 0); P.push(colorize(st, col)); }
+    for (const [x, y, l] of [[0.42, 1.95, 0.62], [-0.38, 1.6, 0.52]]) { const c = new THREE.CylinderGeometry(0.18, 0.18, l, 5, 1, true); c.rotateZ(Math.PI / 2); c.translate(x, y, 0); P.push(colorize(c, col)); }
   }
   return mergeGeos(P);
 }
@@ -2413,12 +2450,28 @@ function buildWorldMeshes(W) {
   W.meshes = { office: add(L.office, WMAT.office, true), house: add(L.house, WMAT.house, true), brick: add(L.brick, WMAT.brick, true), glass: add(L.glass, WMAT.glass, true), shopf: add(L.shopf, WMAT.shopf, true), bill: add(L.bill, WMAT.bill, true), screen: add(L.screen, WMAT.screen), roof: add(L.roof, WMAT.roof, true), neon: add(L.neon, WMAT.neon) }; add(L.ramp, WMAT.roof, true); add(L.pool, WMAT.pool); add(L.far, WMAT.far); add(L.stand, WMAT.stand, true);
   if (W.waters) { const wl = []; for (const r of W.waters) for (const q of subtractRects(r, W.dry)) wl.push(quadF(q.x0, q.z0, q.x1, q.z1, -0.015, () => [0, 0])); const wm = new THREE.Mesh(mergeGeos(wl), WMAT.water); wm.receiveShadow = true; root.add(wm); }
   // ---- instanced trees ----
-  W.inst = { trees: {}, props: {}, tl: null };
+  // Trees are split into map tiles. Each tile carries its own bounds, so three.js skips tiles that are off screen (and out
+  // of the shadow camera), tiles beyond the fog are hidden, and tiles past the detail distance swap to simple trees.
+  W.inst = { trees: {}, props: {}, tl: null, treeTiles: [] };
+  const TILE = 170;
   for (const type of ['oak', 'palm', 'cactus', 'pine', 'rock']) {
     const list = W.trees.filter(t => t.type === type); if (!list.length) continue;
-    const m = new THREE.InstancedMesh(treeGeo(type), WMAT.tree, list.length); m.castShadow = true; m.receiveShadow = true;
-    list.forEach((t, i) => { _v1.set(t.x, heightAt(t.x, t.z), t.z); _q.setFromAxisAngle(UP, t.r); _s.setScalar(t.s); _m.compose(_v1, _q, _s); m.setMatrixAt(i, _m); m.setColorAt(i, new THREE.Color().setScalar(0.85 + rng() * 0.3)); });
-    _s.set(1, 1, 1); root.add(m); W.inst.trees[type] = m;
+    for (const t of list) { t.y = heightAt(t.x, t.z); t.tint = 0.85 + rng() * 0.3; }   // same random sequence as before, so the world doesn't change
+    const hiG = treeGeo(type), loG = treeGeo(type, true), cells = new Map();
+    for (const t of list) { const k = Math.floor(t.x / TILE) + ',' + Math.floor(t.z / TILE); let c = cells.get(k); if (!c) cells.set(k, c = []); c.push(t); }
+    for (const cl of cells.values()) {
+      const cx = cl.reduce((a, t) => a + t.x, 0) / cl.length, cy = cl.reduce((a, t) => a + t.y, 0) / cl.length + 4, cz = cl.reduce((a, t) => a + t.z, 0) / cl.length;
+      let r = 0; for (const t of cl) r = Math.max(r, Math.hypot(t.x - cx, t.y - cy, t.z - cz) + 10 * t.s);
+      const sphere = new THREE.Sphere(new THREE.Vector3(cx, cy, cz), r);
+      const mk = (g, shadow) => {   // a light wrapper: shares the tree's vertex buffers, carries this tile's bounds
+        const w = new THREE.BufferGeometry(); for (const a in g.attributes) w.setAttribute(a, g.attributes[a]); if (g.index) w.setIndex(g.index); w.boundingSphere = sphere;
+        const m = new THREE.InstancedMesh(w, WMAT.tree, cl.length); m.castShadow = shadow; m.receiveShadow = true; m.frustumCulled = true; return m;   // InstancedMesh turns culling off by default; these bounds are right
+      };
+      const hi = mk(hiG, true), lo = mk(loG, false); lo.visible = false;
+      cl.forEach((t, i) => { _v1.set(t.x, t.y, t.z); _q.setFromAxisAngle(UP, t.r); _s.setScalar(t.s); _m.compose(_v1, _q, _s); hi.setMatrixAt(i, _m); lo.setMatrixAt(i, _m); _c1.setScalar(t.tint); hi.setColorAt(i, _c1); lo.setColorAt(i, _c1); });
+      _s.set(1, 1, 1); root.add(hi, lo); W.inst.treeTiles.push({ hi, lo, x: cx, y: cy, z: cz, r });
+    }
+    W.inst.trees[type] = list.length;
   }
   // ---- instanced props ----
   for (const type of ['lamp', 'hydrant', 'bin', 'cone', 'pump', 'umbrella']) {
@@ -4354,7 +4407,7 @@ const RSTEP = 1 / 60, RGRAV = 15;
 
 // rounded body parts: capsule limbs, a tapered torso, an oval head with a face, a hair cap
 function capsuleGeo(rBot, rTop, h, seg) {   // along y, centred; rBot at -y, rTop at +y
-  const pts = [], N = 5;
+  const pts = [], N = 4;
   for (let i = 0; i <= N; i++) { const a = -Math.PI / 2 + i / N * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(1e-4, Math.cos(a) * rBot), -h / 2 + rBot + Math.sin(a) * rBot)); }
   for (let i = 0; i <= N; i++) { const a = i / N * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(1e-4, Math.cos(a) * rTop), h / 2 - rTop + Math.sin(a) * rTop)); }
   return new THREE.LatheGeometry(pts, seg || 10);
@@ -4363,27 +4416,27 @@ function shade(g, v) { return colorize(g, new THREE.Color(v, v, v)); }
 function roundPart(k) {
   const [w, h, d] = PART_GEO[k], P = [];
   if (k === 'head') {
-    const s = new THREE.SphereGeometry(0.5, 18, 14); s.scale(w * 0.96, h, d); P.push(shade(s, 1));
-    for (const x of [-0.045, 0.045]) { const e = new THREE.SphereGeometry(0.019, 8, 6); e.translate(x, 0.02, d * 0.47); P.push(shade(e, 0.08)); const b = new THREE.BoxGeometry(0.05, 0.012, 0.01); b.translate(x, 0.058, d * 0.47); P.push(shade(b, 0.35)); }
-    const n = new THREE.SphereGeometry(0.024, 8, 6); n.scale(1, 1.2, 1); n.translate(0, -0.012, d * 0.5); P.push(shade(n, 0.95));
+    const s = new THREE.SphereGeometry(0.5, 14, 11); s.scale(w * 0.96, h, d); P.push(shade(s, 1));
+    for (const x of [-0.045, 0.045]) { const e = new THREE.SphereGeometry(0.019, 6, 4); e.translate(x, 0.02, d * 0.47); P.push(shade(e, 0.08)); const b = new THREE.BoxGeometry(0.05, 0.012, 0.01); b.translate(x, 0.058, d * 0.47); P.push(shade(b, 0.35)); }
+    const n = new THREE.SphereGeometry(0.024, 6, 4); n.scale(1, 1.2, 1); n.translate(0, -0.012, d * 0.5); P.push(shade(n, 0.95));
     const m = new THREE.BoxGeometry(0.05, 0.01, 0.01); m.translate(0, -0.062, d * 0.46); P.push(shade(m, 0.45));
-    for (const x of [-1, 1]) { const ea = new THREE.SphereGeometry(0.03, 8, 6); ea.scale(0.6, 1, 1); ea.translate(x * w * 0.48, 0, -0.005); P.push(shade(ea, 0.95)); }
-    const nk = new THREE.CylinderGeometry(0.05, 0.058, 0.16, 10); nk.translate(0, -0.16, -0.01); P.push(shade(nk, 0.92));
+    for (const x of [-1, 1]) { const ea = new THREE.SphereGeometry(0.03, 6, 4); ea.scale(0.6, 1, 1); ea.translate(x * w * 0.48, 0, -0.005); P.push(shade(ea, 0.95)); }
+    const nk = new THREE.CylinderGeometry(0.05, 0.058, 0.16, 8, 1, true); nk.translate(0, -0.16, -0.01); P.push(shade(nk, 0.92));
   } else if (k === 'hair') {   // a cap over the top and back of the head (placed 0.165 above the head centre)
-    const c = new THREE.SphereGeometry(0.5, 18, 8, 0, TAU, 0, Math.PI * 0.36); c.scale(0.245, 0.27, 0.262); c.translate(0, -0.165 + 0.012, -0.006); P.push(shade(c, 1));
-    const bk = new THREE.SphereGeometry(0.5, 16, 8, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42); bk.scale(0.245, 0.27, 0.262); bk.translate(0, -0.165 + 0.012, -0.01); P.push(shade(bk, 1));
+    const c = new THREE.SphereGeometry(0.5, 14, 6, 0, TAU, 0, Math.PI * 0.36); c.scale(0.245, 0.27, 0.262); c.translate(0, -0.165 + 0.012, -0.006); P.push(shade(c, 1));
+    const bk = new THREE.SphereGeometry(0.5, 12, 6, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42); bk.scale(0.245, 0.27, 0.262); bk.translate(0, -0.165 + 0.012, -0.01); P.push(shade(bk, 1));
   } else if (k === 'torso') {
-    const c = new THREE.CylinderGeometry(0.5, 0.43, h * 0.78, 18, 2); c.scale(w, 1, d); P.push(shade(c, 1));
-    const top = new THREE.SphereGeometry(0.5, 18, 6, 0, TAU, 0, Math.PI / 2); top.scale(w, h * 0.22, d); top.translate(0, h * 0.39, 0); P.push(shade(top, 1));
-    const bot = new THREE.SphereGeometry(0.5, 18, 6, 0, TAU, Math.PI / 2, Math.PI / 2); bot.scale(w * 0.86, h * 0.14, d * 0.98); bot.translate(0, -h * 0.39, 0); P.push(shade(bot, 1));
-    const belt = new THREE.CylinderGeometry(0.5, 0.5, 0.035, 18); belt.scale(w * 0.9, 1, d * 1.02); belt.translate(0, -h * 0.36, 0); P.push(shade(belt, 0.3));
+    const c = new THREE.CylinderGeometry(0.5, 0.43, h * 0.78, 14, 1, true); c.scale(w, 1, d); P.push(shade(c, 1));
+    const top = new THREE.SphereGeometry(0.5, 14, 4, 0, TAU, 0, Math.PI / 2); top.scale(w, h * 0.22, d); top.translate(0, h * 0.39, 0); P.push(shade(top, 1));
+    const bot = new THREE.SphereGeometry(0.5, 14, 4, 0, TAU, Math.PI / 2, Math.PI / 2); bot.scale(w * 0.86, h * 0.14, d * 0.98); bot.translate(0, -h * 0.39, 0); P.push(shade(bot, 1));
+    const belt = new THREE.CylinderGeometry(0.5, 0.5, 0.035, 14, 1, true); belt.scale(w * 0.9, 1, d * 1.02); belt.translate(0, -h * 0.36, 0); P.push(shade(belt, 0.3));
   } else if (k === 'll') {   // shin with a shoe at the foot end (+y points down the leg)
-    P.push(shade(capsuleGeo(w * 0.5, w * 0.4, h, 10), 1));
-    const sh = new THREE.SphereGeometry(0.5, 10, 8); sh.scale(w * 1.05, 0.1, d * 1.35); sh.translate(0, h / 2 - 0.02, 0.025); P.push(shade(sh, 0.22));
+    P.push(shade(capsuleGeo(w * 0.5, w * 0.4, h, 8), 1));
+    const sh = new THREE.SphereGeometry(0.5, 8, 6); sh.scale(w * 1.05, 0.1, d * 1.35); sh.translate(0, h / 2 - 0.02, 0.025); P.push(shade(sh, 0.22));
   } else if (k === 'la') {   // forearm with a hand at the end
-    P.push(shade(capsuleGeo(w * 0.52, w * 0.42, h, 10), 1));
-    const hd = new THREE.SphereGeometry(0.5, 10, 8); hd.scale(w * 0.95, 0.11, d * 0.7); hd.translate(0, h / 2 + 0.03, 0); P.push(shade(hd, 1));
-  } else P.push(shade(capsuleGeo(w * 0.55, w * 0.47, h, 10), 1));
+    P.push(shade(capsuleGeo(w * 0.52, w * 0.42, h, 8), 1));
+    const hd = new THREE.SphereGeometry(0.5, 8, 6); hd.scale(w * 0.95, 0.11, d * 0.7); hd.translate(0, h / 2 + 0.03, 0); P.push(shade(hd, 1));
+  } else P.push(shade(capsuleGeo(w * 0.55, w * 0.47, h, 8), 1));
   return mergeGeos(P);
 }
 function initPeds() {
@@ -4392,7 +4445,7 @@ function initPeds() {
   const counts = { head: 1, hair: 1, torso: 1, ua: 2, la: 2, ul: 2, ll: 2 };
   for (const k in counts) {
     const m = new THREE.InstancedMesh(mkGeo(k), mat, PED.MAX * counts[k]);
-    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; m.count0 = PED.MAX * counts[k];
     for (let i = 0; i < PED.MAX * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); }
     PED.mesh[k] = m;
   }
@@ -4793,7 +4846,12 @@ function updatePeds(dt) {
     if (p.rag) pedMatrices(p, p.rag.pos, p.rag.ends); else { poseWalk(p); if (p.isHero) heroPoseFix(p); else if (p.cop && p.aimT > GT) aimPose(p.pts, p.aimYaw, false, false); else if (p.clerk) clerkPose(p); else if (p.customer) customerPose(p); else if (p.remote) netPose(p); if (p.isHero && CAM.fpFoot) hidePed(p); else pedMatrices(p, p.pts, ENDS_DEF); }
   }
   if (G.onFoot) updateFocus();
-  for (const k in PED.mesh) PED.mesh[k].instanceMatrix.needsUpdate = true;
+  // slots are handed out lowest-first, so only draw (and upload) up to the highest one in use, not all of PED.MAX
+  let top = -1; for (const p of PED.list) if (p.active && p.slot > top) top = p.slot;
+  for (const k in PED.mesh) {
+    const m = PED.mesh[k], per = m.count0 / PED.list.length, n = (top + 1) * per;
+    m.count = n; m.instanceMatrix.updateRange.offset = 0; m.instanceMatrix.updateRange.count = n * 16; m.instanceMatrix.needsUpdate = true;
+  }
 }
 // =====================================================================
 //  ON FOOT: the player character, carjacking, punching
@@ -6097,7 +6155,7 @@ function applyTime() {
 }
 function applyQuality() {
   const Q = QUALITY[settings.quality] || QUALITY.medium;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr));
+  DYN.scale = 1; renderer.setPixelRatio(basePR());
   if (Q.shadow) { sun.castShadow = true; if (sun.shadow.mapSize.x !== Q.shadow) { sun.shadow.mapSize.set(Q.shadow, Q.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } }
   else sun.castShadow = false;
   scene.fog.near = Q.fog * 0.22; scene.fog.far = Q.fog;
@@ -6308,33 +6366,39 @@ function onPlayerLand(v) {
   $('#stunt').style.opacity = '1'; HUD.stuntT = 2.4;
   MIS.jumpBest = Math.max(MIS.jumpBest, dist);
 }
+// HUD writes only touch the page when the value actually changes: rewriting the same text or width every frame
+// still makes the browser redo style and layout work
+const _hudC = {};
+function hudT(id, v) { v = String(v); if (_hudC[id] !== v) { _hudC[id] = v; el(id).textContent = v; } }
+function hudS(id, prop, v) { const k = id + '.' + prop; if (_hudC[k] !== v) { _hudC[k] = v; el(id).style[prop] = v; } }
+function hudH(id, v) { v = !!v; const k = id + '.h'; if (_hudC[k] !== v) { _hudC[k] = v; el(id).hidden = v; } }
 function updateHUD(dt) {
   const P = G.player, F = PF(); if (!F) return;
   const mph = settings.units === 'mph', PL = G.plane, foot = !PL && (G.onFoot || !P);
-  el('spdrow').hidden = foot; el('n2oLabel').hidden = foot; el('n2oBar').hidden = foot;
-  el('hpLabel').textContent = PL ? 'Hull' : foot ? 'Health' : 'Body';
-  el('n2oLabel').textContent = PL ? 'Throttle' : 'Nitro';
-  if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; el('altrow').hidden = !PL; $('#ui').classList.toggle('flying', !!PL); }
-  { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); el('bombsV').textContent = bt; const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
+  hudH('spdrow', foot); hudH('n2oLabel', foot); hudH('n2oBar', foot);
+  hudT('hpLabel', PL ? 'Hull' : foot ? 'Health' : 'Body');
+  hudT('n2oLabel', PL ? 'Throttle' : 'Nitro');
+  if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; hudH('altrow', !PL); $('#ui').classList.toggle('flying', !!PL); }
+  { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); hudT('bombsV', bt); const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
   let hp;
   if (PL) {
-    el('spd').textContent = Math.round(PL.speed * (mph ? 2.237 : 3.6)); el('unit').textContent = mph ? 'MPH' : 'KM/H'; el('gear').textContent = PL.ground ? 'GND' : 'AIR';
-    el('nitroFill').style.width = (PL.T * 100).toFixed(1) + '%';
-    const alt = Math.max(0, PL.y - planeGround(PL)); el('altV').textContent = Math.round(mph ? alt * 3.281 : alt); el('altU').textContent = mph ? 'ALT FT' : 'ALT M';
-    const stall = !PL.ground && !PL.wreck && PL.V.length() < PL.def.vstall * 1.05; if (HUD.stall !== stall) { HUD.stall = stall; el('stall').hidden = !stall; }
+    hudT('spd', Math.round(PL.speed * (mph ? 2.237 : 3.6))); hudT('unit', mph ? 'MPH' : 'KM/H'); hudT('gear', PL.ground ? 'GND' : 'AIR');
+    hudS('nitroFill', 'width', (PL.T * 100).toFixed(1) + '%');
+    const alt = Math.max(0, PL.y - planeGround(PL)); hudT('altV', Math.round(mph ? alt * 3.281 : alt)); hudT('altU', mph ? 'ALT FT' : 'ALT M');
+    const stall = !PL.ground && !PL.wreck && PL.V.length() < PL.def.vstall * 1.05; if (HUD.stall !== stall) { HUD.stall = stall; hudH('stall', !stall); }
     hp = Math.max(0, PL.hp) / PL.def.hp;
   } else if (!foot) {
-    el('spd').textContent = Math.round(Math.abs(P.vf) * (mph ? 2.237 : 3.6));
-    el('unit').textContent = mph ? 'MPH' : 'KM/H'; el('gear').textContent = G.gear || 'N';
-    el('nitroFill').style.width = (P.st.nitro ? P.nitro * 100 : 0).toFixed(1) + '%';
+    hudT('spd', Math.round(Math.abs(P.vf) * (mph ? 2.237 : 3.6)));
+    hudT('unit', mph ? 'MPH' : 'KM/H'); hudT('gear', G.gear || 'N');
+    hudS('nitroFill', 'width', (P.st.nitro ? P.nitro * 100 : 0).toFixed(1) + '%');
     hp = P.health / P.maxHp;
   } else hp = HERO.hp / HERO.maxHp;
-  const hf = el('hpFill'); hf.style.width = (hp * 100).toFixed(1) + '%'; hf.style.background = hp > 0.5 ? 'var(--good)' : hp > 0.25 ? 'var(--sodium)' : 'var(--siren-red)';
+  hudS('hpFill', 'width', (hp * 100).toFixed(1) + '%'); hudS('hpFill', 'background', hp > 0.5 ? 'var(--good)' : hp > 0.25 ? 'var(--sodium)' : 'var(--siren-red)');
   if (HUD.stars !== wanted.stars) { HUD.stars = wanted.stars; $$('#stars svg').forEach((s, i) => s.classList.toggle('on', i < wanted.stars)); }
   const st = el('stars'); st.classList.toggle('flash', wanted.stars > 0 && !wanted.seen); st.classList.toggle('hot', wanted.stars > 0 && wanted.seen);
-  const bust = el('bust'); bust.hidden = wanted.bust < 0.2; el('bustFill').style.width = clamp(wanted.bust / 3.2 * 100, 0, 100) + '%';
+  hudH('bust', wanted.bust < 0.2); hudS('bustFill', 'width', clamp(wanted.bust / 3.2 * 100, 0, 100) + '%');
   const wi = ARMS.cur, wv = WEAPONS[wi];
-  el('wpn').hidden = !gunsOn() || !!PL;
+  hudH('wpn', !gunsOn() || !!PL);
   const wt = wv.name + '|' + (wi ? (ARMS.reloadT > 0 ? 'Reloading' : ARMS.mag[wi] + ' / ' + ARMS.ammo[wi]) : 'Q to punch');
   if (HUD.wt !== wt) { HUD.wt = wt; el('wpnName').textContent = wv.name; el('wpnAmmo').textContent = wt.split('|')[1]; el('wpn').classList.toggle('empty', wi > 0 && ARMS.mag[wi] + ARMS.ammo[wi] === 0); }
   const cash = '$' + MIS.cash.toLocaleString(); if (HUD.cash !== cash) { HUD.cash = cash; el('cash').textContent = cash; }
@@ -6653,7 +6717,7 @@ function gameUpdate(rdt) {
   for (const v of VEH.list) { vehicleWater(v, dt); v.syncModel(dt); vehicleEffects(v, dt); }
   FX.smoke.update(dt); FX.blood.update(dt); FX.debris.update(dt); FX.fire.update(dt); DECALS.update(dt);
   updateTrafficLights();
-  updateCamera(rdt); updateGlow(); SFX.update(dt); updateHUD(rdt);
+  updateCamera(rdt); updateTreeTiles(); updateGlow(); SFX.update(dt); updateHUD(rdt);
   const slowOn = G.slowmo > 0 && !G.down;
   if (slowOn !== HUD.slowOn) { HUD.slowOn = slowOn; $('#ui').classList.toggle('slowmo', slowOn); if (!G.down) renderer.domElement.style.filter = slowOn ? 'saturate(.55) contrast(1.12)' : ''; }
   const Q = G.player;
@@ -6746,6 +6810,8 @@ const SET_SCHEMA = [
   { k: 'guns', label: 'Guns', sub: 'Your weapons, and police who shoot back', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
   { k: 'gore', label: 'Gore', sub: 'High adds dismemberment', type: 'seg', opts: [['off', 'Off'], ['low', 'Low'], ['high', 'High']] },
   { k: 'damage', label: 'Crash damage', sub: 'How much cars crumple and break apart', type: 'seg', opts: [['arcade', 'Arcade'], ['realistic', 'Realistic'], ['brutal', 'Brutal']] },
+  { k: 'autoRes', label: 'Auto resolution', sub: 'Renders slightly fewer pixels when the frame rate drops, so it stays smooth', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
+  { k: 'fps', label: 'Show FPS', sub: 'Frames per second, at the top of the screen', type: 'seg', opts: [['off', 'Off'], ['on', 'On']] },
   { k: 'camStyle', label: 'On-foot camera', sub: 'Roblox: drag or Ctrl shift-lock to look, scroll to zoom. Classic: the camera follows behind you', type: 'seg', opts: [['roblox', 'Roblox'], ['classic', 'Classic']] },
   { k: 'slowmo', label: 'Crash slow-mo', sub: 'Cinematic slow motion on big crashes and rollovers', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
   { k: 'time', label: 'Time of day', type: 'seg', opts: [['day', 'Day'], ['sunset', 'Sunset'], ['night', 'Night']] },
@@ -6795,6 +6861,33 @@ function closeSettings() { $('#settings').hidden = true; if (APP.mode === 'game'
 
 // ---------------- boot ----------------
 let VW = 0, VH = 0;
+// ---- automatic resolution: when the frame rate sags, render fewer pixels (the HUD and menus stay sharp) ----
+const DYN = { scale: 1, sum: 0, sq: 0, n: 0, t: 0, fpsT: 0, fpsN: 0, warm: 4, probe: null, noGain: false };
+function basePR() { const Q = QUALITY[settings.quality] || QUALITY.medium; return Math.min(window.devicePixelRatio || 1, Q.pr); }
+function dynRes(rdt) {
+  if (APP.mode !== 'game' || APP.paused || BM.open || !(rdt > 0)) { DYN.sum = DYN.sq = DYN.n = DYN.t = 0; DYN.warm = Math.max(DYN.warm, APP.mode === 'game' ? 1 : 4); return; }
+  // optional frame-rate readout
+  DYN.fpsT += rdt; DYN.fpsN++;
+  if (DYN.fpsT >= 0.5) { const f = el('fps'); if (settings.fps === 'on') { f.hidden = false; f.textContent = Math.round(DYN.fpsN / DYN.fpsT) + ' FPS' + (DYN.scale < 0.99 ? ' · ' + Math.round(DYN.scale * 100) + '% res' : ''); } else if (!f.hidden) f.hidden = true; DYN.fpsT = DYN.fpsN = 0; }
+  if (DYN.warm > 0) { DYN.warm -= rdt; return; }   // loading hitches and shader compiles right after starting aren't the real frame rate
+  if (settings.autoRes === 'off') { if (DYN.scale !== 1) { DYN.scale = 1; renderer.setPixelRatio(basePR()); onResize(); } return; }
+  DYN.sum += rdt; DYN.sq += rdt * rdt; DYN.n++; DYN.t += rdt;
+  if (DYN.t < 2) return;
+  const avg = DYN.sum / DYN.n, sd = Math.sqrt(Math.max(0, DYN.sq / DYN.n - avg * avg)); DYN.sum = DYN.sq = DYN.n = DYN.t = 0;
+  // A steady 30 fps is either a graphics card that just misses 60, or a browser capping the rate to save power. Fewer pixels
+  // only help the first, so try one step down: keep it if the frame rate improves, otherwise go back and stop trying.
+  const steady30 = Math.abs(avg - 1 / 30) < 0.002 && sd < 0.003, base = basePR(), floor = Math.min(1, 0.6 / base);
+  if (!steady30) DYN.noGain = false;
+  let s = DYN.scale;
+  if (DYN.probe) {
+    const pb = DYN.probe; DYN.probe = null;
+    if (avg > pb.avg * 0.9) { s = pb.scale; DYN.noGain = true; }   // no better: the rate was capped, not slow
+  } else if (avg > 1 / 45 && !(steady30 && DYN.noGain)) {
+    if (steady30) DYN.probe = { scale: s, avg };
+    s = Math.max(floor, s * 0.85);
+  } else if (avg < 1 / 57 && s < 1) s = Math.min(1, s * 1.08);
+  if (Math.abs(s - DYN.scale) > 0.005) { DYN.scale = s; renderer.setPixelRatio(base * s); onResize(); }
+}
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; VW = w; VH = h;
   renderer.setSize(w, h, false);
@@ -6869,6 +6962,7 @@ function frame(now) {
   try {
     rbxPointer(false);   // menus, pause and the map always get the mouse back
     if (APP.mode === 'game' && W) {
+      dynRes(rdt);
       if (!APP.paused && !BM.open) { const t0 = performance.now(); gameUpdate(rdt); PERF.upd = PERF.upd * 0.95 + (performance.now() - t0) * 0.05; }
       if (!BM.open) renderScene();
     } else {
@@ -10052,12 +10146,12 @@ const KIDS = { mesh: {}, list: [], N: 18, school: null, shown: false, alarmT: -9
 function initKids() {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
   const counts = { head: 1, hair: 1, torso: 1, ua: 2, la: 2, ul: 2, ll: 2 };
-  for (const k in counts) { const m = new THREE.InstancedMesh(roundPart(k), mat, KIDS.N * counts[k]); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; for (let i = 0; i < KIDS.N * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); } KIDS.mesh[k] = m; scene.add(m); }
+  for (const k in counts) { const m = new THREE.InstancedMesh(roundPart(k), mat, KIDS.N * counts[k]); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; m.visible = false; for (let i = 0; i < KIDS.N * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); } KIDS.mesh[k] = m; scene.add(m); }
   for (let i = 0; i < KIDS.N; i++) KIDS.list.push({ slot: i, meshSet: KIDS.mesh, pts: new Float32Array(45), x: 0, y: 0, z: 0, h: 0, sp: 0, phase: 0, state: 'walk', running: false, scale: 0.6, fat: 1, on: false });
 }
 function hideKids() {
   for (const k of KIDS.list) { k.on = false; const s = k.slot, M = KIDS.mesh; M.head.setMatrixAt(s, _zeroM); M.hair.setMatrixAt(s, _zeroM); M.torso.setMatrixAt(s, _zeroM); for (const p of ['ua', 'la', 'ul', 'll']) { M[p].setMatrixAt(s * 2, _zeroM); M[p].setMatrixAt(s * 2 + 1, _zeroM); } }
-  for (const m in KIDS.mesh) KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.shown = false;
+  for (const m in KIDS.mesh) { KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.mesh[m].visible = false; } KIDS.shown = false;
 }
 function schoolAlarm(x, z) { for (const s of (W && W.schools) || []) if (Math.hypot(s.cx - x, s.cz - z) < 320) KIDS.alarmT = GT; }
 function kidTarget(s) {
@@ -10100,7 +10194,7 @@ function updateKids(dt) {
     k.phase += Math.abs(k.sp) * dt * TAU / (k.running ? 1.5 : 0.9);
     poseWalk(k); pedMatrices(k, k.pts, ENDS_DEF);
   }
-  for (const m in KIDS.mesh) KIDS.mesh[m].instanceMatrix.needsUpdate = true;
+  for (const m in KIDS.mesh) { KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.mesh[m].visible = !!KIDS.shown; }
   // a reminder at the gate
   const h = HERO.p; if (G.onFoot && h && inSchoolGrounds(h.x, h.z) && GT - KIDS.warnT > 20) { KIDS.warnT = GT; feed('School grounds: weapons are not allowed here', 'blue'); }
 }

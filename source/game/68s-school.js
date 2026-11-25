@@ -93,12 +93,12 @@ const KIDS = { mesh: {}, list: [], N: 18, school: null, shown: false, alarmT: -9
 function initKids() {
   const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
   const counts = { head: 1, hair: 1, torso: 1, ua: 2, la: 2, ul: 2, ll: 2 };
-  for (const k in counts) { const m = new THREE.InstancedMesh(roundPart(k), mat, KIDS.N * counts[k]); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; for (let i = 0; i < KIDS.N * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); } KIDS.mesh[k] = m; scene.add(m); }
+  for (const k in counts) { const m = new THREE.InstancedMesh(roundPart(k), mat, KIDS.N * counts[k]); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; m.visible = false; for (let i = 0; i < KIDS.N * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); } KIDS.mesh[k] = m; scene.add(m); }
   for (let i = 0; i < KIDS.N; i++) KIDS.list.push({ slot: i, meshSet: KIDS.mesh, pts: new Float32Array(45), x: 0, y: 0, z: 0, h: 0, sp: 0, phase: 0, state: 'walk', running: false, scale: 0.6, fat: 1, on: false });
 }
 function hideKids() {
   for (const k of KIDS.list) { k.on = false; const s = k.slot, M = KIDS.mesh; M.head.setMatrixAt(s, _zeroM); M.hair.setMatrixAt(s, _zeroM); M.torso.setMatrixAt(s, _zeroM); for (const p of ['ua', 'la', 'ul', 'll']) { M[p].setMatrixAt(s * 2, _zeroM); M[p].setMatrixAt(s * 2 + 1, _zeroM); } }
-  for (const m in KIDS.mesh) KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.shown = false;
+  for (const m in KIDS.mesh) { KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.mesh[m].visible = false; } KIDS.shown = false;
 }
 function schoolAlarm(x, z) { for (const s of (W && W.schools) || []) if (Math.hypot(s.cx - x, s.cz - z) < 320) KIDS.alarmT = GT; }
 function kidTarget(s) {
@@ -141,7 +141,7 @@ function updateKids(dt) {
     k.phase += Math.abs(k.sp) * dt * TAU / (k.running ? 1.5 : 0.9);
     poseWalk(k); pedMatrices(k, k.pts, ENDS_DEF);
   }
-  for (const m in KIDS.mesh) KIDS.mesh[m].instanceMatrix.needsUpdate = true;
+  for (const m in KIDS.mesh) { KIDS.mesh[m].instanceMatrix.needsUpdate = true; KIDS.mesh[m].visible = !!KIDS.shown; }
   // a reminder at the gate
   const h = HERO.p; if (G.onFoot && h && inSchoolGrounds(h.x, h.z) && GT - KIDS.warnT > 20) { KIDS.warnT = GT; feed('School grounds: weapons are not allowed here', 'blue'); }
 }

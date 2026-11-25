@@ -42,6 +42,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #touch [data-k=msl]{left:calc(var(--gutter-l) + 376px);bottom:calc(var(--bottom) + 168px);width:56px;height:56px;font-size:10px;background:rgba(255,77,94,.5)}
 #touch [data-k=lock]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 168px);width:56px;height:56px;font-size:10px;background:rgba(255,190,60,.35)}
 #touch [data-k=heal]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(210,47,60,.45)}
+#fps{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:30;font:700 12px/1 system-ui,sans-serif;color:#cfe8d0;background:rgba(10,12,16,.55);padding:4px 7px;border-radius:4px;pointer-events:none;font-variant-numeric:tabular-nums}
 #xhair{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45);pointer-events:none;z-index:2}
 #touch [data-k=hook]{left:calc(var(--gutter-l) + 250px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(240,240,240,.18)}
 #ui{position:fixed;inset:0;pointer-events:none;padding-left:var(--gutter-l);padding-right:var(--gutter-r);padding-block:var(--top) var(--bottom)}
@@ -419,6 +420,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="vignette" aria-hidden="true" hidden></div>
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
+    <div id="fps" hidden></div>
     <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>

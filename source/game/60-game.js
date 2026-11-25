@@ -183,7 +183,7 @@ function applyTime() {
 }
 function applyQuality() {
   const Q = QUALITY[settings.quality] || QUALITY.medium;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, Q.pr));
+  DYN.scale = 1; renderer.setPixelRatio(basePR());
   if (Q.shadow) { sun.castShadow = true; if (sun.shadow.mapSize.x !== Q.shadow) { sun.shadow.mapSize.set(Q.shadow, Q.shadow); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } } }
   else sun.castShadow = false;
   scene.fog.near = Q.fog * 0.22; scene.fog.far = Q.fog;
@@ -394,33 +394,39 @@ function onPlayerLand(v) {
   $('#stunt').style.opacity = '1'; HUD.stuntT = 2.4;
   MIS.jumpBest = Math.max(MIS.jumpBest, dist);
 }
+// HUD writes only touch the page when the value actually changes: rewriting the same text or width every frame
+// still makes the browser redo style and layout work
+const _hudC = {};
+function hudT(id, v) { v = String(v); if (_hudC[id] !== v) { _hudC[id] = v; el(id).textContent = v; } }
+function hudS(id, prop, v) { const k = id + '.' + prop; if (_hudC[k] !== v) { _hudC[k] = v; el(id).style[prop] = v; } }
+function hudH(id, v) { v = !!v; const k = id + '.h'; if (_hudC[k] !== v) { _hudC[k] = v; el(id).hidden = v; } }
 function updateHUD(dt) {
   const P = G.player, F = PF(); if (!F) return;
   const mph = settings.units === 'mph', PL = G.plane, foot = !PL && (G.onFoot || !P);
-  el('spdrow').hidden = foot; el('n2oLabel').hidden = foot; el('n2oBar').hidden = foot;
-  el('hpLabel').textContent = PL ? 'Hull' : foot ? 'Health' : 'Body';
-  el('n2oLabel').textContent = PL ? 'Throttle' : 'Nitro';
-  if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; el('altrow').hidden = !PL; $('#ui').classList.toggle('flying', !!PL); }
-  { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); el('bombsV').textContent = bt; const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
+  hudH('spdrow', foot); hudH('n2oLabel', foot); hudH('n2oBar', foot);
+  hudT('hpLabel', PL ? 'Hull' : foot ? 'Health' : 'Body');
+  hudT('n2oLabel', PL ? 'Throttle' : 'Nitro');
+  if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; hudH('altrow', !PL); $('#ui').classList.toggle('flying', !!PL); }
+  { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); hudT('bombsV', bt); const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
   let hp;
   if (PL) {
-    el('spd').textContent = Math.round(PL.speed * (mph ? 2.237 : 3.6)); el('unit').textContent = mph ? 'MPH' : 'KM/H'; el('gear').textContent = PL.ground ? 'GND' : 'AIR';
-    el('nitroFill').style.width = (PL.T * 100).toFixed(1) + '%';
-    const alt = Math.max(0, PL.y - planeGround(PL)); el('altV').textContent = Math.round(mph ? alt * 3.281 : alt); el('altU').textContent = mph ? 'ALT FT' : 'ALT M';
-    const stall = !PL.ground && !PL.wreck && PL.V.length() < PL.def.vstall * 1.05; if (HUD.stall !== stall) { HUD.stall = stall; el('stall').hidden = !stall; }
+    hudT('spd', Math.round(PL.speed * (mph ? 2.237 : 3.6))); hudT('unit', mph ? 'MPH' : 'KM/H'); hudT('gear', PL.ground ? 'GND' : 'AIR');
+    hudS('nitroFill', 'width', (PL.T * 100).toFixed(1) + '%');
+    const alt = Math.max(0, PL.y - planeGround(PL)); hudT('altV', Math.round(mph ? alt * 3.281 : alt)); hudT('altU', mph ? 'ALT FT' : 'ALT M');
+    const stall = !PL.ground && !PL.wreck && PL.V.length() < PL.def.vstall * 1.05; if (HUD.stall !== stall) { HUD.stall = stall; hudH('stall', !stall); }
     hp = Math.max(0, PL.hp) / PL.def.hp;
   } else if (!foot) {
-    el('spd').textContent = Math.round(Math.abs(P.vf) * (mph ? 2.237 : 3.6));
-    el('unit').textContent = mph ? 'MPH' : 'KM/H'; el('gear').textContent = G.gear || 'N';
-    el('nitroFill').style.width = (P.st.nitro ? P.nitro * 100 : 0).toFixed(1) + '%';
+    hudT('spd', Math.round(Math.abs(P.vf) * (mph ? 2.237 : 3.6)));
+    hudT('unit', mph ? 'MPH' : 'KM/H'); hudT('gear', G.gear || 'N');
+    hudS('nitroFill', 'width', (P.st.nitro ? P.nitro * 100 : 0).toFixed(1) + '%');
     hp = P.health / P.maxHp;
   } else hp = HERO.hp / HERO.maxHp;
-  const hf = el('hpFill'); hf.style.width = (hp * 100).toFixed(1) + '%'; hf.style.background = hp > 0.5 ? 'var(--good)' : hp > 0.25 ? 'var(--sodium)' : 'var(--siren-red)';
+  hudS('hpFill', 'width', (hp * 100).toFixed(1) + '%'); hudS('hpFill', 'background', hp > 0.5 ? 'var(--good)' : hp > 0.25 ? 'var(--sodium)' : 'var(--siren-red)');
   if (HUD.stars !== wanted.stars) { HUD.stars = wanted.stars; $$('#stars svg').forEach((s, i) => s.classList.toggle('on', i < wanted.stars)); }
   const st = el('stars'); st.classList.toggle('flash', wanted.stars > 0 && !wanted.seen); st.classList.toggle('hot', wanted.stars > 0 && wanted.seen);
-  const bust = el('bust'); bust.hidden = wanted.bust < 0.2; el('bustFill').style.width = clamp(wanted.bust / 3.2 * 100, 0, 100) + '%';
+  hudH('bust', wanted.bust < 0.2); hudS('bustFill', 'width', clamp(wanted.bust / 3.2 * 100, 0, 100) + '%');
   const wi = ARMS.cur, wv = WEAPONS[wi];
-  el('wpn').hidden = !gunsOn() || !!PL;
+  hudH('wpn', !gunsOn() || !!PL);
   const wt = wv.name + '|' + (wi ? (ARMS.reloadT > 0 ? 'Reloading' : ARMS.mag[wi] + ' / ' + ARMS.ammo[wi]) : 'Q to punch');
   if (HUD.wt !== wt) { HUD.wt = wt; el('wpnName').textContent = wv.name; el('wpnAmmo').textContent = wt.split('|')[1]; el('wpn').classList.toggle('empty', wi > 0 && ARMS.mag[wi] + ARMS.ammo[wi] === 0); }
   const cash = '$' + MIS.cash.toLocaleString(); if (HUD.cash !== cash) { HUD.cash = cash; el('cash').textContent = cash; }
@@ -739,7 +745,7 @@ function gameUpdate(rdt) {
   for (const v of VEH.list) { vehicleWater(v, dt); v.syncModel(dt); vehicleEffects(v, dt); }
   FX.smoke.update(dt); FX.blood.update(dt); FX.debris.update(dt); FX.fire.update(dt); DECALS.update(dt);
   updateTrafficLights();
-  updateCamera(rdt); updateGlow(); SFX.update(dt); updateHUD(rdt);
+  updateCamera(rdt); updateTreeTiles(); updateGlow(); SFX.update(dt); updateHUD(rdt);
   const slowOn = G.slowmo > 0 && !G.down;
   if (slowOn !== HUD.slowOn) { HUD.slowOn = slowOn; $('#ui').classList.toggle('slowmo', slowOn); if (!G.down) renderer.domElement.style.filter = slowOn ? 'saturate(.55) contrast(1.12)' : ''; }
   const Q = G.player;
@@ -832,6 +838,8 @@ const SET_SCHEMA = [
   { k: 'guns', label: 'Guns', sub: 'Your weapons, and police who shoot back', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
   { k: 'gore', label: 'Gore', sub: 'High adds dismemberment', type: 'seg', opts: [['off', 'Off'], ['low', 'Low'], ['high', 'High']] },
   { k: 'damage', label: 'Crash damage', sub: 'How much cars crumple and break apart', type: 'seg', opts: [['arcade', 'Arcade'], ['realistic', 'Realistic'], ['brutal', 'Brutal']] },
+  { k: 'autoRes', label: 'Auto resolution', sub: 'Renders slightly fewer pixels when the frame rate drops, so it stays smooth', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
+  { k: 'fps', label: 'Show FPS', sub: 'Frames per second, at the top of the screen', type: 'seg', opts: [['off', 'Off'], ['on', 'On']] },
   { k: 'camStyle', label: 'On-foot camera', sub: 'Roblox: drag or Ctrl shift-lock to look, scroll to zoom. Classic: the camera follows behind you', type: 'seg', opts: [['roblox', 'Roblox'], ['classic', 'Classic']] },
   { k: 'slowmo', label: 'Crash slow-mo', sub: 'Cinematic slow motion on big crashes and rollovers', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
   { k: 'time', label: 'Time of day', type: 'seg', opts: [['day', 'Day'], ['sunset', 'Sunset'], ['night', 'Night']] },
@@ -881,6 +889,33 @@ function closeSettings() { $('#settings').hidden = true; if (APP.mode === 'game'
 
 // ---------------- boot ----------------
 let VW = 0, VH = 0;
+// ---- automatic resolution: when the frame rate sags, render fewer pixels (the HUD and menus stay sharp) ----
+const DYN = { scale: 1, sum: 0, sq: 0, n: 0, t: 0, fpsT: 0, fpsN: 0, warm: 4, probe: null, noGain: false };
+function basePR() { const Q = QUALITY[settings.quality] || QUALITY.medium; return Math.min(window.devicePixelRatio || 1, Q.pr); }
+function dynRes(rdt) {
+  if (APP.mode !== 'game' || APP.paused || BM.open || !(rdt > 0)) { DYN.sum = DYN.sq = DYN.n = DYN.t = 0; DYN.warm = Math.max(DYN.warm, APP.mode === 'game' ? 1 : 4); return; }
+  // optional frame-rate readout
+  DYN.fpsT += rdt; DYN.fpsN++;
+  if (DYN.fpsT >= 0.5) { const f = el('fps'); if (settings.fps === 'on') { f.hidden = false; f.textContent = Math.round(DYN.fpsN / DYN.fpsT) + ' FPS' + (DYN.scale < 0.99 ? ' · ' + Math.round(DYN.scale * 100) + '% res' : ''); } else if (!f.hidden) f.hidden = true; DYN.fpsT = DYN.fpsN = 0; }
+  if (DYN.warm > 0) { DYN.warm -= rdt; return; }   // loading hitches and shader compiles right after starting aren't the real frame rate
+  if (settings.autoRes === 'off') { if (DYN.scale !== 1) { DYN.scale = 1; renderer.setPixelRatio(basePR()); onResize(); } return; }
+  DYN.sum += rdt; DYN.sq += rdt * rdt; DYN.n++; DYN.t += rdt;
+  if (DYN.t < 2) return;
+  const avg = DYN.sum / DYN.n, sd = Math.sqrt(Math.max(0, DYN.sq / DYN.n - avg * avg)); DYN.sum = DYN.sq = DYN.n = DYN.t = 0;
+  // A steady 30 fps is either a graphics card that just misses 60, or a browser capping the rate to save power. Fewer pixels
+  // only help the first, so try one step down: keep it if the frame rate improves, otherwise go back and stop trying.
+  const steady30 = Math.abs(avg - 1 / 30) < 0.002 && sd < 0.003, base = basePR(), floor = Math.min(1, 0.6 / base);
+  if (!steady30) DYN.noGain = false;
+  let s = DYN.scale;
+  if (DYN.probe) {
+    const pb = DYN.probe; DYN.probe = null;
+    if (avg > pb.avg * 0.9) { s = pb.scale; DYN.noGain = true; }   // no better: the rate was capped, not slow
+  } else if (avg > 1 / 45 && !(steady30 && DYN.noGain)) {
+    if (steady30) DYN.probe = { scale: s, avg };
+    s = Math.max(floor, s * 0.85);
+  } else if (avg < 1 / 57 && s < 1) s = Math.min(1, s * 1.08);
+  if (Math.abs(s - DYN.scale) > 0.005) { DYN.scale = s; renderer.setPixelRatio(base * s); onResize(); }
+}
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; VW = w; VH = h;
   renderer.setSize(w, h, false);
@@ -955,6 +990,7 @@ function frame(now) {
   try {
     rbxPointer(false);   // menus, pause and the map always get the mouse back
     if (APP.mode === 'game' && W) {
+      dynRes(rdt);
       if (!APP.paused && !BM.open) { const t0 = performance.now(); gameUpdate(rdt); PERF.upd = PERF.upd * 0.95 + (performance.now() - t0) * 0.05; }
       if (!BM.open) renderScene();
     } else {

@@ -9,3 +9,5 @@ Object.assign(window.__havoc, { camera });
 Object.assign(window.__havoc, { KIDS, weaponsBanned, inSchoolGrounds, schoolAlarm });
 Object.assign(window.__havoc, { SFX, SND_DATA, SND_LOOPS, openSettings });
 Object.assign(window.__havoc, { rbxFoot, rbxZoom, toggleShiftLock, RBX });
+Object.assign(window.__havoc, { renderer, scene, renderScene, POST, gameUpdate });
+Object.assign(window.__havoc, { DYN, dynRes, updateTreeTiles });

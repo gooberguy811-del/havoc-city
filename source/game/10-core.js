@@ -18,7 +18,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
 };
 
-const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'day', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox' };
+const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'day', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox', autoRes: 'on', fps: 'off' };
 const settings = Object.assign({}, SETTINGS_DEF, store.get('havoc.settings', {}));
 const CAR_DEF = { body: 'viper', paint: '#d22f3c', finish: 'gloss', stripes: false, stripe: '#f4f4f4', rim: 'sport', rimColor: '#c9ccd2', wheel: 'm', spoiler: 'none', neon: 'off', tint: 1, height: 'stock', plate: 'HAVOC', engine: 2, handling: 2, brakes: 2, armor: 1, nitro: true };
 const carCfg = Object.assign({}, CAR_DEF, store.get('havoc.car', {}));
@@ -48,7 +48,7 @@ $('#stage').appendChild(renderer.domElement);
 const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 1600);
 const scene = new THREE.Scene();
 
-const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3();
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _v4 = new THREE.Vector3(), _c1 = new THREE.Color();
 const _q = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _m = new THREE.Matrix4(), _s = new THREE.Vector3(1, 1, 1);
 const UP = new THREE.Vector3(0, 1, 0);
 const _zeroM = new THREE.Matrix4().makeScale(0, 0, 0);

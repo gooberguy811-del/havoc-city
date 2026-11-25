@@ -22,7 +22,7 @@ const RSTEP = 1 / 60, RGRAV = 15;
 
 // rounded body parts: capsule limbs, a tapered torso, an oval head with a face, a hair cap
 function capsuleGeo(rBot, rTop, h, seg) {   // along y, centred; rBot at -y, rTop at +y
-  const pts = [], N = 5;
+  const pts = [], N = 4;
   for (let i = 0; i <= N; i++) { const a = -Math.PI / 2 + i / N * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(1e-4, Math.cos(a) * rBot), -h / 2 + rBot + Math.sin(a) * rBot)); }
   for (let i = 0; i <= N; i++) { const a = i / N * Math.PI / 2; pts.push(new THREE.Vector2(Math.max(1e-4, Math.cos(a) * rTop), h / 2 - rTop + Math.sin(a) * rTop)); }
   return new THREE.LatheGeometry(pts, seg || 10);
@@ -31,27 +31,27 @@ function shade(g, v) { return colorize(g, new THREE.Color(v, v, v)); }
 function roundPart(k) {
   const [w, h, d] = PART_GEO[k], P = [];
   if (k === 'head') {
-    const s = new THREE.SphereGeometry(0.5, 18, 14); s.scale(w * 0.96, h, d); P.push(shade(s, 1));
-    for (const x of [-0.045, 0.045]) { const e = new THREE.SphereGeometry(0.019, 8, 6); e.translate(x, 0.02, d * 0.47); P.push(shade(e, 0.08)); const b = new THREE.BoxGeometry(0.05, 0.012, 0.01); b.translate(x, 0.058, d * 0.47); P.push(shade(b, 0.35)); }
-    const n = new THREE.SphereGeometry(0.024, 8, 6); n.scale(1, 1.2, 1); n.translate(0, -0.012, d * 0.5); P.push(shade(n, 0.95));
+    const s = new THREE.SphereGeometry(0.5, 14, 11); s.scale(w * 0.96, h, d); P.push(shade(s, 1));
+    for (const x of [-0.045, 0.045]) { const e = new THREE.SphereGeometry(0.019, 6, 4); e.translate(x, 0.02, d * 0.47); P.push(shade(e, 0.08)); const b = new THREE.BoxGeometry(0.05, 0.012, 0.01); b.translate(x, 0.058, d * 0.47); P.push(shade(b, 0.35)); }
+    const n = new THREE.SphereGeometry(0.024, 6, 4); n.scale(1, 1.2, 1); n.translate(0, -0.012, d * 0.5); P.push(shade(n, 0.95));
     const m = new THREE.BoxGeometry(0.05, 0.01, 0.01); m.translate(0, -0.062, d * 0.46); P.push(shade(m, 0.45));
-    for (const x of [-1, 1]) { const ea = new THREE.SphereGeometry(0.03, 8, 6); ea.scale(0.6, 1, 1); ea.translate(x * w * 0.48, 0, -0.005); P.push(shade(ea, 0.95)); }
-    const nk = new THREE.CylinderGeometry(0.05, 0.058, 0.16, 10); nk.translate(0, -0.16, -0.01); P.push(shade(nk, 0.92));
+    for (const x of [-1, 1]) { const ea = new THREE.SphereGeometry(0.03, 6, 4); ea.scale(0.6, 1, 1); ea.translate(x * w * 0.48, 0, -0.005); P.push(shade(ea, 0.95)); }
+    const nk = new THREE.CylinderGeometry(0.05, 0.058, 0.16, 8, 1, true); nk.translate(0, -0.16, -0.01); P.push(shade(nk, 0.92));
   } else if (k === 'hair') {   // a cap over the top and back of the head (placed 0.165 above the head centre)
-    const c = new THREE.SphereGeometry(0.5, 18, 8, 0, TAU, 0, Math.PI * 0.36); c.scale(0.245, 0.27, 0.262); c.translate(0, -0.165 + 0.012, -0.006); P.push(shade(c, 1));
-    const bk = new THREE.SphereGeometry(0.5, 16, 8, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42); bk.scale(0.245, 0.27, 0.262); bk.translate(0, -0.165 + 0.012, -0.01); P.push(shade(bk, 1));
+    const c = new THREE.SphereGeometry(0.5, 14, 6, 0, TAU, 0, Math.PI * 0.36); c.scale(0.245, 0.27, 0.262); c.translate(0, -0.165 + 0.012, -0.006); P.push(shade(c, 1));
+    const bk = new THREE.SphereGeometry(0.5, 12, 6, Math.PI, Math.PI, Math.PI * 0.3, Math.PI * 0.42); bk.scale(0.245, 0.27, 0.262); bk.translate(0, -0.165 + 0.012, -0.01); P.push(shade(bk, 1));
   } else if (k === 'torso') {
-    const c = new THREE.CylinderGeometry(0.5, 0.43, h * 0.78, 18, 2); c.scale(w, 1, d); P.push(shade(c, 1));
-    const top = new THREE.SphereGeometry(0.5, 18, 6, 0, TAU, 0, Math.PI / 2); top.scale(w, h * 0.22, d); top.translate(0, h * 0.39, 0); P.push(shade(top, 1));
-    const bot = new THREE.SphereGeometry(0.5, 18, 6, 0, TAU, Math.PI / 2, Math.PI / 2); bot.scale(w * 0.86, h * 0.14, d * 0.98); bot.translate(0, -h * 0.39, 0); P.push(shade(bot, 1));
-    const belt = new THREE.CylinderGeometry(0.5, 0.5, 0.035, 18); belt.scale(w * 0.9, 1, d * 1.02); belt.translate(0, -h * 0.36, 0); P.push(shade(belt, 0.3));
+    const c = new THREE.CylinderGeometry(0.5, 0.43, h * 0.78, 14, 1, true); c.scale(w, 1, d); P.push(shade(c, 1));
+    const top = new THREE.SphereGeometry(0.5, 14, 4, 0, TAU, 0, Math.PI / 2); top.scale(w, h * 0.22, d); top.translate(0, h * 0.39, 0); P.push(shade(top, 1));
+    const bot = new THREE.SphereGeometry(0.5, 14, 4, 0, TAU, Math.PI / 2, Math.PI / 2); bot.scale(w * 0.86, h * 0.14, d * 0.98); bot.translate(0, -h * 0.39, 0); P.push(shade(bot, 1));
+    const belt = new THREE.CylinderGeometry(0.5, 0.5, 0.035, 14, 1, true); belt.scale(w * 0.9, 1, d * 1.02); belt.translate(0, -h * 0.36, 0); P.push(shade(belt, 0.3));
   } else if (k === 'll') {   // shin with a shoe at the foot end (+y points down the leg)
-    P.push(shade(capsuleGeo(w * 0.5, w * 0.4, h, 10), 1));
-    const sh = new THREE.SphereGeometry(0.5, 10, 8); sh.scale(w * 1.05, 0.1, d * 1.35); sh.translate(0, h / 2 - 0.02, 0.025); P.push(shade(sh, 0.22));
+    P.push(shade(capsuleGeo(w * 0.5, w * 0.4, h, 8), 1));
+    const sh = new THREE.SphereGeometry(0.5, 8, 6); sh.scale(w * 1.05, 0.1, d * 1.35); sh.translate(0, h / 2 - 0.02, 0.025); P.push(shade(sh, 0.22));
   } else if (k === 'la') {   // forearm with a hand at the end
-    P.push(shade(capsuleGeo(w * 0.52, w * 0.42, h, 10), 1));
-    const hd = new THREE.SphereGeometry(0.5, 10, 8); hd.scale(w * 0.95, 0.11, d * 0.7); hd.translate(0, h / 2 + 0.03, 0); P.push(shade(hd, 1));
-  } else P.push(shade(capsuleGeo(w * 0.55, w * 0.47, h, 10), 1));
+    P.push(shade(capsuleGeo(w * 0.52, w * 0.42, h, 8), 1));
+    const hd = new THREE.SphereGeometry(0.5, 8, 6); hd.scale(w * 0.95, 0.11, d * 0.7); hd.translate(0, h / 2 + 0.03, 0); P.push(shade(hd, 1));
+  } else P.push(shade(capsuleGeo(w * 0.55, w * 0.47, h, 8), 1));
   return mergeGeos(P);
 }
 function initPeds() {
@@ -60,7 +60,7 @@ function initPeds() {
   const counts = { head: 1, hair: 1, torso: 1, ua: 2, la: 2, ul: 2, ll: 2 };
   for (const k in counts) {
     const m = new THREE.InstancedMesh(mkGeo(k), mat, PED.MAX * counts[k]);
-    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true;
+    m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.frustumCulled = false; m.castShadow = true; m.count0 = PED.MAX * counts[k];
     for (let i = 0; i < PED.MAX * counts[k]; i++) { m.setMatrixAt(i, _zeroM); m.setColorAt(i, COL.white); }
     PED.mesh[k] = m;
   }
@@ -461,5 +461,10 @@ function updatePeds(dt) {
     if (p.rag) pedMatrices(p, p.rag.pos, p.rag.ends); else { poseWalk(p); if (p.isHero) heroPoseFix(p); else if (p.cop && p.aimT > GT) aimPose(p.pts, p.aimYaw, false, false); else if (p.clerk) clerkPose(p); else if (p.customer) customerPose(p); else if (p.remote) netPose(p); if (p.isHero && CAM.fpFoot) hidePed(p); else pedMatrices(p, p.pts, ENDS_DEF); }
   }
   if (G.onFoot) updateFocus();
-  for (const k in PED.mesh) PED.mesh[k].instanceMatrix.needsUpdate = true;
+  // slots are handed out lowest-first, so only draw (and upload) up to the highest one in use, not all of PED.MAX
+  let top = -1; for (const p of PED.list) if (p.active && p.slot > top) top = p.slot;
+  for (const k in PED.mesh) {
+    const m = PED.mesh[k], per = m.count0 / PED.list.length, n = (top + 1) * per;
+    m.count = n; m.instanceMatrix.updateRange.offset = 0; m.instanceMatrix.updateRange.count = n * 16; m.instanceMatrix.needsUpdate = true;
+  }
 }

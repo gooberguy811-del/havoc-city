@@ -452,7 +452,8 @@ function lumpy(g, amt, seed) {
   }
   g.computeVertexNormals(); return g;
 }
-function treeGeo(type) {
+function treeGeo(type, lo) {
+  if (lo) return treeGeoLo(type);
   const P = [];
   if (type === 'oak') {   // trunk with a couple of limbs and a lumpy, two-tone crown
     const t = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 7); t.translate(0, 1.8, 0); P.push(colorize(t, C('#5a3e28')));
@@ -488,6 +489,40 @@ function treeGeo(type) {
     const stem = (r, h, x, y, z) => { const s = new THREE.CylinderGeometry(r, r * 1.08, h, seg, 3, true); s.translate(x, y + h / 2, z); P.push(rib(s, col)); const cap = new THREE.SphereGeometry(r, seg, 6, 0, TAU, 0, Math.PI / 2); cap.translate(x, y + h, z); P.push(rib(cap, col)); };
     stem(0.34, 3.4, 0, 0, 0); stem(0.22, 1.3, 0.78, 1.95, 0); stem(0.2, 1.0, -0.68, 1.6, 0);
     for (const [x, y, l] of [[0.42, 1.95, 0.62], [-0.38, 1.6, 0.52]]) { const c = new THREE.CylinderGeometry(0.2, 0.2, l, seg, 1, true); c.rotateZ(Math.PI / 2); c.translate(x, y, 0); P.push(rib(c, col)); const e = new THREE.SphereGeometry(0.2, seg, 8); e.translate(x * 1.85, y, 0); P.push(rib(e, col)); }
+  }
+  return mergeGeos(P);
+}
+// each frame: hide tree tiles beyond the fog, use the simple trees past the detail distance
+const TREE_DETAIL = { low: 70, medium: 115, high: 170 };
+function updateTreeTiles() {
+  const T = W && W.inst && W.inst.treeTiles; if (!T || !T.length) return;
+  const c = camera.position, far = scene.fog.far + 20, near = TREE_DETAIL[settings.quality] || 115;
+  for (const t of T) {
+    const d = Math.hypot(t.x - c.x, t.y - c.y, t.z - c.z) - t.r, vis = d < far, hi = vis && d < near;
+    if (t.hi.visible !== hi) t.hi.visible = hi; if (t.lo.visible !== (vis && !hi)) t.lo.visible = vis && !hi;
+  }
+}
+// the same trees with a fraction of the triangles, for tiles further than the detail distance
+function treeGeoLo(type) {
+  const P = [];
+  if (type === 'oak') {
+    const t = new THREE.CylinderGeometry(0.2, 0.36, 3.6, 5, 1, true); t.translate(0, 1.8, 0); P.push(colorize(t, C('#5a3e28')));
+    for (const [x, y, z, r, col] of [[0, 4.8, 0, 2.6, '#3b6f2a'], [1.1, 5.4, 0.4, 1.7, '#4a8233'], [-1.0, 5.2, -0.4, 1.8, '#447b2f']]) {
+      const f = new THREE.IcosahedronGeometry(r, 1); { const uv = f.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 3, uv.getY(i) * 2); } f.scale(1, 0.86, 1); f.translate(x, y, z); P.push(colorize(f, C(col)));
+    }
+  } else if (type === 'palm') {
+    const s = new THREE.CylinderGeometry(0.12, 0.25, 8.4, 5, 1, true); s.rotateZ(-0.16); s.translate(0.7, 4.2, 0); P.push(colorize(s, C('#8f7049')));
+    const top = [1.35, 8.3];
+    for (let k = 0; k < 7; k++) { const fr = new THREE.BoxGeometry(0.55, 0.05, 2.8); fr.translate(0, 0, 1.4); fr.rotateX(0.35); fr.rotateY(k / 7 * TAU); fr.translate(top[0], top[1], 0); P.push(colorize(fr, C(['#3f8a3a', '#4c9a40', '#356f2e'][k % 3]))); }
+  } else if (type === 'pine') {
+    const t = new THREE.CylinderGeometry(0.18, 0.34, 11, 4, 1, true); t.translate(0, 5.5, 0); P.push(colorize(t, C('#5b4330')));
+    for (let k = 0; k < 3; k++) { const c = new THREE.ConeGeometry(2.4 - k * 0.6, 3, 6, 1, true); c.translate(0, 4 + k * 2.6, 0); P.push(colorize(c, C(k % 2 ? '#2f5b37' : '#36663d'))); }
+  } else if (type === 'rock') {
+    const r = new THREE.IcosahedronGeometry(1, 0); r.scale(0.85, 0.55, 0.7); r.translate(0, 0.4, 0); P.push(colorize(r, C('#9b7d5c')));
+  } else {   // cactus
+    const col = C('#4f7d3a');
+    for (const [r, h, x, y] of [[0.34, 3.6, 0, 0], [0.22, 1.4, 0.78, 1.95], [0.2, 1.1, -0.68, 1.6]]) { const st = new THREE.CylinderGeometry(r * 0.8, r, h, 6); st.translate(x, y + h / 2, 0); P.push(colorize(st, col)); }
+    for (const [x, y, l] of [[0.42, 1.95, 0.62], [-0.38, 1.6, 0.52]]) { const c = new THREE.CylinderGeometry(0.18, 0.18, l, 5, 1, true); c.rotateZ(Math.PI / 2); c.translate(x, y, 0); P.push(colorize(c, col)); }
   }
   return mergeGeos(P);
 }
@@ -672,12 +707,28 @@ function buildWorldMeshes(W) {
   W.meshes = { office: add(L.office, WMAT.office, true), house: add(L.house, WMAT.house, true), brick: add(L.brick, WMAT.brick, true), glass: add(L.glass, WMAT.glass, true), shopf: add(L.shopf, WMAT.shopf, true), bill: add(L.bill, WMAT.bill, true), screen: add(L.screen, WMAT.screen), roof: add(L.roof, WMAT.roof, true), neon: add(L.neon, WMAT.neon) }; add(L.ramp, WMAT.roof, true); add(L.pool, WMAT.pool); add(L.far, WMAT.far); add(L.stand, WMAT.stand, true);
   if (W.waters) { const wl = []; for (const r of W.waters) for (const q of subtractRects(r, W.dry)) wl.push(quadF(q.x0, q.z0, q.x1, q.z1, -0.015, () => [0, 0])); const wm = new THREE.Mesh(mergeGeos(wl), WMAT.water); wm.receiveShadow = true; root.add(wm); }
   // ---- instanced trees ----
-  W.inst = { trees: {}, props: {}, tl: null };
+  // Trees are split into map tiles. Each tile carries its own bounds, so three.js skips tiles that are off screen (and out
+  // of the shadow camera), tiles beyond the fog are hidden, and tiles past the detail distance swap to simple trees.
+  W.inst = { trees: {}, props: {}, tl: null, treeTiles: [] };
+  const TILE = 170;
   for (const type of ['oak', 'palm', 'cactus', 'pine', 'rock']) {
     const list = W.trees.filter(t => t.type === type); if (!list.length) continue;
-    const m = new THREE.InstancedMesh(treeGeo(type), WMAT.tree, list.length); m.castShadow = true; m.receiveShadow = true;
-    list.forEach((t, i) => { _v1.set(t.x, heightAt(t.x, t.z), t.z); _q.setFromAxisAngle(UP, t.r); _s.setScalar(t.s); _m.compose(_v1, _q, _s); m.setMatrixAt(i, _m); m.setColorAt(i, new THREE.Color().setScalar(0.85 + rng() * 0.3)); });
-    _s.set(1, 1, 1); root.add(m); W.inst.trees[type] = m;
+    for (const t of list) { t.y = heightAt(t.x, t.z); t.tint = 0.85 + rng() * 0.3; }   // same random sequence as before, so the world doesn't change
+    const hiG = treeGeo(type), loG = treeGeo(type, true), cells = new Map();
+    for (const t of list) { const k = Math.floor(t.x / TILE) + ',' + Math.floor(t.z / TILE); let c = cells.get(k); if (!c) cells.set(k, c = []); c.push(t); }
+    for (const cl of cells.values()) {
+      const cx = cl.reduce((a, t) => a + t.x, 0) / cl.length, cy = cl.reduce((a, t) => a + t.y, 0) / cl.length + 4, cz = cl.reduce((a, t) => a + t.z, 0) / cl.length;
+      let r = 0; for (const t of cl) r = Math.max(r, Math.hypot(t.x - cx, t.y - cy, t.z - cz) + 10 * t.s);
+      const sphere = new THREE.Sphere(new THREE.Vector3(cx, cy, cz), r);
+      const mk = (g, shadow) => {   // a light wrapper: shares the tree's vertex buffers, carries this tile's bounds
+        const w = new THREE.BufferGeometry(); for (const a in g.attributes) w.setAttribute(a, g.attributes[a]); if (g.index) w.setIndex(g.index); w.boundingSphere = sphere;
+        const m = new THREE.InstancedMesh(w, WMAT.tree, cl.length); m.castShadow = shadow; m.receiveShadow = true; m.frustumCulled = true; return m;   // InstancedMesh turns culling off by default; these bounds are right
+      };
+      const hi = mk(hiG, true), lo = mk(loG, false); lo.visible = false;
+      cl.forEach((t, i) => { _v1.set(t.x, t.y, t.z); _q.setFromAxisAngle(UP, t.r); _s.setScalar(t.s); _m.compose(_v1, _q, _s); hi.setMatrixAt(i, _m); lo.setMatrixAt(i, _m); _c1.setScalar(t.tint); hi.setColorAt(i, _c1); lo.setColorAt(i, _c1); });
+      _s.set(1, 1, 1); root.add(hi, lo); W.inst.treeTiles.push({ hi, lo, x: cx, y: cy, z: cz, r });
+    }
+    W.inst.trees[type] = list.length;
   }
   // ---- instanced props ----
   for (const type of ['lamp', 'hydrant', 'bin', 'cone', 'pump', 'umbrella']) {
