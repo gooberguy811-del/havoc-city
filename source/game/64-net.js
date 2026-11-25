@@ -485,7 +485,7 @@ const okPid = p => typeof p === 'string' && /^[a-z0-9]{10}$/.test(p);
 const isFriend = N => !!(N && okPid(N.pid) && FRIENDS.list[N.pid]);
 const noFriendHurt = N => isFriend(N) && settings.ffriends !== 'on';
 function saveFriends() { store.set('havoc.friends', FRIENDS.list); }
-const MAP_NAMES = { base: 'Fort Redrock', neon: 'Neon Heights', sand: 'Sandport', perth: 'Perth', nyc: 'New York' };
+const MAP_NAMES = { base: 'Fort Redrock', neon: 'Neon Heights', sand: 'Sandport', perth: 'Perth', nyc: 'New York', test: 'Testing Zone' };
 function friendRequest(N) {
   if (!N || !okPid(N.pid) || !NET.R) return;
   if (FRIENDS.list[N.pid]) { feed(`${N.name} is already your friend`); return; }

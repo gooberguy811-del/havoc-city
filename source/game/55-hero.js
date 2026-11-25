@@ -80,7 +80,9 @@ function toggleVehicle() {
     if (HERO.enter) { HERO.enter = null; return; }
     if (HERO.chute) return;
     const pl = nearPlane(); if (pl) { enterPlane(pl); return; }
-    const v = findEnterable(); if (v) HERO.enter = { v, t: 0 };
+    const v = findEnterable();
+    if (v && v.showroom && bodyLocked(v.cfg.body)) { feed(`The ${BODIES[v.cfg.body].name} is locked: ${UNLOCK_HOW[BODIES[v.cfg.body].unlock] || 'finish its job'} to unlock it`, 'red'); return; }
+    if (v) HERO.enter = { v, t: 0 };
   } else if (G.plane) leavePlane(); else if (G.player) exitVehicle();
 }
 function enterVehicle(v) {

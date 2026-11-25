@@ -39,6 +39,8 @@ function heightAt(x, z) {
     const along = (x - r.sx) * r.dx + (z - r.sz) * r.dz, across = (x - r.x) * (-r.dz) + (z - r.z) * r.dx;
     if (along >= 0 && along <= r.len && Math.abs(across) <= r.w / 2) h = Math.max(h, r.base + r.h * along / r.len);
   }
+  const sg = W.shapeGrid;   // smooth terrain pieces (Testing Zone)
+  if (sg) { const sa = sg.m.get(sg.k(Math.floor(x / sg.c), Math.floor(z / sg.c))); if (sa) for (const s of sa) if (x >= s.bx0 && x <= s.bx1 && z >= s.bz0 && z <= s.bz1) { const y = s.h(x, z); if (y > h) h = y; } }
   return h;
 }
 function lightState(n, axis) {
@@ -83,6 +85,8 @@ function genWorld(id) {
     genNYC(W, rng, addNode, addEdge);
   } else if (id === 'base') {
     genBase(W, rng, addNode, addEdge);
+  } else if (id === 'test') {
+    genTest(W, rng, addNode, addEdge);
   } else {
     W.name = 'Sandport'; W.style = 'town';
     const NI = 6, NJ = 5, S = 90, hw = 6, ox = -225, oz = -180;
@@ -143,9 +147,9 @@ function genWorld(id) {
   }
   for (const f of W.flats) flatFill(W, f, rng);
   // boundary walls
-  const B = W.bounds, T = 2;
-  W.addBox(B.x0 - T, B.z0 - T, B.x1 + T, B.z0, 1.4, 'wall'); W.addBox(B.x0 - T, B.z1, B.x1 + T, B.z1 + T, 1.4, 'wall');
-  W.addBox(B.x0 - T, B.z0, B.x0, B.z1, 1.4, 'wall'); W.addBox(B.x1, B.z0, B.x1 + T, B.z1, 1.4, 'wall');
+  const B = W.bounds, T = 2, wh = W.wallH || 1.4;
+  W.addBox(B.x0 - T, B.z0 - T, B.x1 + T, B.z0, wh, 'wall'); W.addBox(B.x0 - T, B.z1, B.x1 + T, B.z1 + T, wh, 'wall');
+  W.addBox(B.x0 - T, B.z0, B.x0, B.z1, wh, 'wall'); W.addBox(B.x1, B.z0, B.x1 + T, B.z1, wh, 'wall');
   finalizeWorld(W);
   return W;
 }
@@ -342,6 +346,7 @@ function finalizeWorld(W) {
   W.blockGrid = new Grid(32, 'b'); for (const b of W.blocks) W.blockGrid.insert(b, b.x0, b.z0, b.x1, b.z1);
   W.boxGrid = new Grid(16, 'x'); for (const b of W.boxes) W.boxGrid.insert(b, b.x0, b.z0, b.x1, b.z1);
   W.tallBoxes = W.boxes.filter(b => b.h > 2.5 && b.kind !== 'wall');
+  if (W.shapes && W.shapes.length) { W.shapeGrid = new Grid(24, 's'); for (const s of W.shapes) W.shapeGrid.insert(s, s.bx0, s.bz0, s.bx1, s.bz1); }
   // pedestrian loops around each block on the sidewalk
   W.loops = [];
   for (const b of W.blocks) {
@@ -371,6 +376,8 @@ function finalizeWorld(W) {
   for (const f of W.flats) mini.flats.rect(f.x0, f.z0, f.x1 - f.x0, f.z1 - f.z0);
   if (W.airport) { mini.air = new Path2D(); for (const p of W.airport.pave) mini.air.rect(p.x0, p.z0, p.x1 - p.x0, p.z1 - p.z0); const r = W.airport.runway; mini.runway = new Path2D(); mini.runway.rect(r.x0, r.z0, r.x1 - r.x0, r.z1 - r.z0); for (const rd of W.airport.roads) { mini.roads.moveTo(rd.x0, rd.z); mini.roads.lineTo(rd.x1, rd.z); } }
   for (const r of W.ramps) mini.bldgs.rect(r.bx0, r.bz0, r.bx1 - r.bx0, r.bz1 - r.bz0);
+  for (const s of W.shapes || []) if (s.kind !== 'mogul' && s.kind !== 'bank' && s.kind !== 'bump' && s.kind !== 'rumble') mini.bldgs.rect(s.bx0, s.bz0, s.bx1 - s.bx0, s.bz1 - s.bz0);
+  for (const L of W.loopTracks || []) mini.bldgs.rect(Math.min(L.ex - L.R, L.ex + L.R), L.ez - 4, 2 * L.R, L.off + 8);
   for (const r of W.waters || []) mini.water.rect(r.x0, r.z0, r.x1 - r.x0, r.z1 - r.z0);
   for (const d of W.dry) if (!d.deck) mini.flats.rect(d.x0, d.z0, d.x1 - d.x0, d.z1 - d.z0);
   W.mini = mini;
@@ -568,7 +575,7 @@ function buildWorldMeshes(W) {
   groundMat.polygonOffset = true; groundMat.polygonOffsetFactor = 4; groundMat.polygonOffsetUnits = 8;
   const ground = new THREE.Mesh(gg, groundMat); ground.receiveShadow = true; root.add(ground);
   // rolling hills and dunes beyond the playable area, so the world doesn't end on a flat plane
-  if (['sand', 'base', 'perth'].includes(W.id)) {
+  if (['sand', 'base', 'perth', 'test'].includes(W.id)) {
     const B = W.bounds, mx = (B.x0 + B.x1) / 2, mz = (B.z0 + B.z1) / 2, size = 3800, n = 120, M2 = 45;
     const hg = new THREE.PlaneGeometry(size, size, n, n); hg.rotateX(-Math.PI / 2); hg.translate(mx, 0, mz);
     const hp = hg.attributes.position, huv = hg.attributes.uv;
@@ -614,7 +621,11 @@ function buildWorldMeshes(W) {
     if (b.top) { const i = 3; L[b.top].push(quadF(b.x0 + i, b.z0 + i, b.x1 - i, b.z1 - i, b.h + 0.008, tile(b.top === 'lot' ? 8 : 6))); }
     if (b.paths) for (const p of b.paths) L.side.push(quadF(p[0], p[1], p[2], p[3], b.h + 0.016, tile(3)));
   }
-  for (const f of W.flats) { if (f.tex === 'none') continue; (f.tex === 'grass' ? L.grass : L.sand).push(quadF(f.x0, f.z0, f.x1, f.z1, 0.004, tile(8))); }
+  for (const f of W.flats) {
+    if (f.tex === 'none') continue;
+    const to = f.tex === 'grass' ? L.grass : f.tex === 'lot' ? L.lot : f.tex === 'dirt' ? L.dirt : L.sand;
+    for (const q of W.testZone && W.waters ? subtractRects(f, W.waters) : [f]) to.push(quadF(q.x0, q.z0, q.x1, q.z1, 0.004, tile(8)));   // water pools show through the pads
+  }
   // buildings
   // facade styles: concrete offices, brick walk-ups, glass towers (stacked tiers keep their base's style)
   { const sr = mulberry32(W.id.length * 31 + 7); let prev = null;
@@ -656,6 +667,7 @@ function buildWorldMeshes(W) {
     back.translate(s.x - (s.axis === 'x' ? s.dir * 0.06 : 0), s.y, s.z - (s.axis === 'z' ? s.dir * 0.06 : 0)); s._bi = L.roof.length; L.roof.push(colorize(back, C('#18191c')));
   }
   for (const r of W.ramps) L.ramp.push(rampGeo(r));
+  for (const s of W.shapes || []) L.ramp.push(s.geo());
   for (const d of W.decor) {
     if (d.type === 'fountain') {
       const y = 0.15;
@@ -694,7 +706,7 @@ function buildWorldMeshes(W) {
       L.office.push(boxUV(x - w / 2, 0, z - d / 2, x + w / 2, h, z + d / 2, 32, 28.8, { offU: ((rng() * 8) | 0) / 8, roofUV: [0.004, 0.004], color: C(rp(rng, ['#5a636e', '#6b737d', '#4c545e', '#7a828b'])) }));
     }
   } else {
-    const red = W.id === 'base', n = red ? 34 : 26;
+    const red = W.id === 'base' || W.id === 'test', n = red ? 34 : 26;
     for (let k = 0; k < n; k++) {   // flat-topped mesas and buttes, with a darker cap band
       const a = red ? k / n * TAU + rng() * 0.08 : Math.PI * 0.55 + k / n * Math.PI * 1.25, r = (red ? 1180 : 640) + rng() * 160, mesa = rng() < 0.65, h = mesa ? 55 + rng() * 85 : 90 + rng() * 110, w = 60 + rng() * 90;
       const x = Math.cos(a) * r, z = Math.sin(a) * r, cols = red ? ['#b5693f', '#a65a35', '#c47a4a', '#9e5d3c'] : ['#b08a63', '#9c7856', '#c29b70'];

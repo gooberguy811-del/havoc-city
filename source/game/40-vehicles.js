@@ -46,7 +46,7 @@ class Vehicle {
     const i = VEH.list.indexOf(this); if (i >= 0) VEH.list.splice(i, 1);
   }
   syncModel(dt) {
-    const upright = this.onGround && !this.tumble && !this.flipped;
+    const upright = this.onGround && !this.tumble && !this.flipped && !this.loop;
     this.ry = upright && dt ? lerp(this.ry, this.y, damp(16, dt)) : this.y; // soft suspension over curbs
     const o = this.obj; o.position.set(this.x, this.ry + this.bump * 0.5, this.z); o.rotation.y = this.h;
     const fx = Math.sin(this.h), fz = Math.cos(this.h), hb = this.st.wb / 2;
@@ -54,7 +54,11 @@ class Vehicle {
     if (upright) { const hf = heightAt(this.x + fx * hb, this.z + fz * hb), hr = heightAt(this.x - fx * hb, this.z - fz * hb); pt = -Math.atan2(hf - hr, this.st.wb); }
     else if (this.tumble || this.flipped) pt = 0;
     else pt = clamp(-Math.atan2(this.vy, Math.max(4, Math.abs(this.vf))) * 0.7, -0.6, 0.6);
-    this.pitch = lerp(this.pitch, pt, dt ? damp(upright ? 14 : 3, dt) : 1);
+    this.pitch = this.loop ? 0 : lerp(this.pitch, pt, dt ? damp(upright ? 14 : 3, dt) : 1);
+    // lean with the ground side to side too (banked turns, ramp edges, kerbs)
+    let bk = 0;
+    if (upright && !this.bike) { const tr = this.trk || (this.trk = ((BODIES[this.cfg.body] || {}).track || 1.6) / 2), rx = -fz, rz = fx; bk = Math.atan2(heightAt(this.x - rx * tr, this.z - rz * tr) - heightAt(this.x + rx * tr, this.z + rz * tr), tr * 2); }
+    this.bank = lerp(this.bank || 0, bk, dt ? damp(14, dt) : 1);
     const ln = upright ? clamp(this.av * this.vf * 0.0055, -0.07, 0.07) : 0;
     this.lean = lerp(this.lean, ln, dt ? damp(6, dt) : 1);
     let sagR = 0, sagP = 0; const L = this.wlost;
@@ -74,7 +78,7 @@ class Vehicle {
       if (this.model.rider.visible !== showRider) this.model.rider.visible = showRider;
     } else {
       this.model.pivot.rotation.x = this.pitch + this.pit + sagP;
-      this.model.pivot.rotation.z = this.roll + sagR;
+      this.model.pivot.rotation.z = this.roll + sagR + this.bank;
       this.model.body.rotation.z = this.lean;
     }
     if (dt) { const acc = (this.vf - this.pvf) / dt; this.pvf = this.vf; this.accF = lerp(this.accF, upright ? clamp(acc, -25, 25) : 0, damp(7, dt)); }
@@ -82,12 +86,13 @@ class Vehicle {
     this.bump *= Math.exp(-10 * (dt || 0));
     if (dt) {
       const spin = this.vf / this.wr * dt;
-      for (const w of this.model.wheels) { if (w.spin.parent !== w.pivot || !w.pivot.parent || w.pivot.parent !== this.model.inner) continue; w.spin.rotation.x += upright ? spin : spin * 0.3; if (w.front) w.pivot.rotation.y = this.steer * 0.5; w.pivot.rotation.z = w.bent; }
+      for (const w of this.model.wheels) { if (w.spin.parent !== w.pivot || !w.pivot.parent || w.pivot.parent !== this.model.inner) continue; w.spin.rotation.x += upright || this.loop ? spin : spin * 0.3; if (w.front) w.pivot.rotation.y = this.steer * 0.5; w.pivot.rotation.z = w.bent; }
     }
   }
 }
 function stepVehicle(v, dt) {
   if (v.remote) return;
+  if (v.loop) { loopStep(v, dt); return; }
   const inp = v.input, st = v.st;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), rx = -fz, rz = fx;
   let vf = v.vx * fx + v.vz * fz, vr = v.vx * rx + v.vz * rz;
@@ -120,8 +125,13 @@ function stepVehicle(v, dt) {
     yaw = clamp(yaw, -yawMax, yawMax);
     if (v.tank) yaw = yaw * 0.4 + v.steer * 0.8 * clamp(1 - Math.abs(vf) / 14, 0.3, 1);
     if (inp.hand && Math.abs(vf) > 5) yaw *= 1.4;
+    if (W.liftOff && Math.abs(vf) > 1) {   // banked ground: gravity pulls you towards the low side, so a fast car holds a line high on the wall
+      const sr = (heightAt(v.x + rx * 0.9, v.z + rz * 0.9) - heightAt(v.x - rx * 0.9, v.z - rz * 0.9)) / 1.8;
+      if (Math.abs(sr) > 0.04) yaw += GRAV * sr / Math.sqrt(1 + sr * sr) / Math.max(4, Math.abs(vf)) * Math.sign(vf) * 0.9;
+    }
     yaw += v.drag * clamp(vf, -14, 14) * 0.03;
     v.av += (yaw - v.av) * Math.min(1, dt * 9);
+    if (W.liftOff) { const hb = st.wb / 2, sl = (heightAt(v.x + fx * hb, v.z + fz * hb) - heightAt(v.x - fx * hb, v.z - fz * hb)) / st.wb; vf -= GRAV * sl / Math.sqrt(1 + sl * sl) * dt; }   // gravity along the slope
     v.vx = fx * vf + rx * vr; v.vz = fz * vf + rz * vr;
   } else if (v.flipped) {
     const k = Math.exp(-2.4 * dt); v.vx *= k; v.vz *= k; v.av *= Math.exp(-3 * dt); v.boosting = false;
@@ -155,12 +165,14 @@ function stepVehicle(v, dt) {
     if (Math.hypot(v.vx, v.vz) > 3) scrapeFX(v);
     if (Math.abs(v.rollV) > 1.2) { v.flipped = false; v.tumble = true; v.vy = 2.5; }
   } else if (v.onGround) {
-    if (gh > v.y + 0.55) {
+    const climb = W.liftOff ? Math.max(0.55, Math.hypot(v.vx, v.vz) * dt * 2.6) : 0.55;
+    if (gh > v.y + climb) {
       v.x -= v.vx * dt; v.z -= v.vz * dt; const imp = Math.hypot(v.vx, v.vz); v.vx *= -0.2; v.vz *= -0.2;
       if (imp > 4) vehicleImpact(v, imp * 0.8, v.x + fx * v.front, v.y + 0.6, v.z + fz * v.front);
     } else if (gh < v.y - 0.35) { v.onGround = false; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; }
     else if (gh > v.y + 0.07 && v.slip > 12.5 && settings.damage !== 'arcade' && Math.random() < 0.35) startTumble(v, Math.sign(vr || 1) * (v.slip - 9) * 0.45, rand(-0.2, 0.2), 3);
-    else { v.vy = clamp((gh - v.y) / dt, -15, 25); v.y = gh; }
+    else if (W.liftOff && (v.svy || 0) > 3 && gh < v.y + ((v.svy || 0) - GRAV * dt) * dt - 0.02) { v.onGround = false; v.vy = v.svy; v.svy = 0; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; v.y += v.vy * dt; }
+    else { v.vy = clamp((gh - v.y) / dt, -15, W.liftOff ? 45 : 25); v.y = gh; if (W.liftOff) v.svy = lerp(v.svy || 0, v.vy, Math.min(1, dt * 8)); }
     v.roll *= Math.exp(-8 * dt); v.pit *= Math.exp(-8 * dt);
   } else {
     v.y += v.vy * dt; v.airT += dt;
@@ -174,7 +186,9 @@ function stepVehicle(v, dt) {
     }
     if (!flipper && (Math.abs(v.rollV) > 0.4 || Math.abs(v.pitV) > 0.6)) v.tumble = true;
     else if (v.y <= gh) {
-      const imp = -v.vy; v.y = gh; v.vy = 0; v.onGround = true; v.bump = -Math.min(0.25, imp * 0.02); v.rollV = 0;
+      let imp = -v.vy;
+      if (W.liftOff) { const sp = Math.hypot(v.vx, v.vz) || 1, ux = v.vx / sp, uz = v.vz / sp, m = (heightAt(v.x + ux, v.z + uz) - heightAt(v.x - ux, v.z - uz)) / 2; imp = Math.max(0, -(v.vy - m * sp) / Math.sqrt(1 + m * m)); }
+      v.y = gh; v.vy = 0; v.onGround = true; v.bump = -Math.min(0.25, imp * 0.02); v.rollV = 0;
       let crashed = false;
       if (flipper) {
         const a = wrapA(v.pit), n = Math.round(Math.abs(v.flipAcc || 0) / TAU);
@@ -183,11 +197,13 @@ function stepVehicle(v, dt) {
         v.flipAcc = 0;
       }
       v.pitV = 0;
-      if (imp > 9) { damageVehicle(v, (imp - 9) * 2.2, null); if (v === G.player) { G.shake = Math.max(G.shake, imp * 0.02); SFX.crash(imp * 0.6); } }
+      const dT = W.liftOff ? 20 : 9;   // the Testing Zone's landings are built for big air
+      if (imp > dT) { damageVehicle(v, (imp - dT) * (W.liftOff ? 1.0 : 2.2), null); if (v === G.player) { G.shake = Math.max(G.shake, imp * 0.02); SFX.crash(imp * 0.6); } }
       if (v.bike && !crashed && imp > 13 * ((BODIES[v.cfg.body] || {}).land || (BODIES[v.cfg.body] || {}).tough || 1)) bikeThrow(v, imp * 0.8);
       if (v === G.player) onPlayerLand(v);
     }
   }
+  if (W.loopTracks && W.loopTracks.length && v.onGround && !v.tumble && !v.flipped && !v.loop) loopTryEnter(v, dt);
 }
 // ---------------- soft-body style crash damage ----------------
 const DMG_MULT = { arcade: 0.45, realistic: 1, brutal: 1.8 };
@@ -200,6 +216,7 @@ function bikeFlipLanded(v, type, n) {
   const word = (n === 2 ? 'Double ' : n >= 3 ? 'Triple ' : '') + (type === 'back' ? 'backflip' : 'frontflip');
   if (v === G.player) { feed(word.charAt(0).toUpperCase() + word.slice(1) + '!  +$' + 75 * n, 'green'); addCash(75 * n); SFX.ding(); G.stats.flips = (G.stats.flips || 0) + n; }
   MIS.lastFlip = { type, n, t: GT };
+  if (v === G.player) addStyle(word.toUpperCase(), 1300 * n);
 }
 // a motorbike crash throws the rider off; the bike goes down on its side
 function bikeThrow(v, power) {
@@ -223,6 +240,7 @@ function bikeThrow(v, power) {
   if (!v.tumble && !v.flipped) { v.rollV += (Math.random() < 0.5 ? -1 : 1) * (1.6 + sp * 0.05); v.tumble = true; v.onGround = false; v.vy = Math.max(v.vy, 1.2); v.airT = 0; v.airX = v.x; v.airZ = v.z; }
 }
 function startTumble(v, rv, pv, vy) {
+  if (v === G.player) styleCrash();
   if (v.bike) bikeThrow(v, 12);
   if (v === G.player && !v.tumble && Math.hypot(v.vx, v.vz) > 12) crashCam(14, v.x, v.z);
   v.flipped = false; v.tumble = true; v.onGround = false; v.rollV += rv; v.pitV += pv || 0; v.vy = Math.max(v.vy, vy || 0);
@@ -423,7 +441,7 @@ function updateDebris(dt) {
 function clearDebris() { for (const d of DEBRIS) { scene.remove(d.m); if (d.own) d.m.geometry.dispose(); } DEBRIS.length = 0; }
 const _bx = [];
 function collideStatic(v) {
-  if (v.remote) return;
+  if (v.remote || v.loop) return;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), R = Math.max(v.front, -v.rear) + 1;
   W.boxGrid.query(v.x - R, v.z - R, v.x + R, v.z + R, _bx);
   for (const b of _bx) {
@@ -463,7 +481,7 @@ function collideVehicles() {
     const A = L[i];
     for (let j = i + 1; j < L.length; j++) {
       const B = L[j], dx = B.x - A.x, dz = B.z - A.z;
-      if (dx * dx + dz * dz > 56) continue;
+      if (dx * dx + dz * dz > 56 || A.loop || B.loop) continue;
       if (Math.abs(A.y - B.y) > 1.3) continue;
       const fax = Math.sin(A.h), faz = Math.cos(A.h), fbx = Math.sin(B.h), fbz = Math.cos(B.h);
       for (let ka = 0; ka < 3; ka++) for (let kb = 0; kb < 3; kb++) {
@@ -879,7 +897,7 @@ function manageTraffic(dt, initial) {
   G.trafficT -= dt; if (G.trafficT > 0 && !initial) return; G.trafficT = 0.2;
   const P = PF(); if (!P) return;
   const draw = QUALITY[settings.quality].draw;
-  const target = Math.round(settings.trafficDensity / 100 * 34);
+  const target = W.noTraffic ? 0 : Math.round(settings.trafficDensity / 100 * 34);   // the Testing Zone is a closed course
   let traffic = 0, police = 0;
   for (let i = VEH.list.length - 1; i >= 0; i--) {
     const v = VEH.list[i]; if (v === G.player || v.remote) continue;
@@ -895,7 +913,7 @@ function manageTraffic(dt, initial) {
   else if (traffic > target + 2) { const far = VEH.list.filter(v => v.kind === 'traffic' && Math.hypot(v.x - P.x, v.z - P.z) > 110); if (far.length) far[0].remove(); }
   // police
   const pol = POLICE[settings.police];
-  let want = settings.police === 'off' ? 0 : (wanted.stars ? Math.round([0, 2, 3, 4, 6, 8][wanted.stars] * pol.mult) : (settings.trafficDensity > 0 ? 2 : 0));
+  let want = settings.police === 'off' ? 0 : (wanted.stars ? Math.round([0, 2, 3, 4, 6, 8][wanted.stars] * pol.mult) : (settings.trafficDensity > 0 && !W.noTraffic ? 2 : 0));
   if (wanted.stars) want = Math.max(1, want);
   if (police < want) { if (initial) spawnAI('police', 60, 200, false); else spawnAI('police', wanted.stars ? 70 : 100, wanted.stars ? 150 : 200, true); }
   else if (police > want + 1) { const far = VEH.list.filter(v => isCop(v) && Math.hypot(v.x - P.x, v.z - P.z) > 120); if (far.length) far[0].remove(); }

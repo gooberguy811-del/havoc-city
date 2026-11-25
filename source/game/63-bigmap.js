@@ -67,7 +67,7 @@ function bigMapZoom(f, sx, sy) {
   BM.cx = wx - (px - w / 2) / BM.s; BM.cz = wz - (py - h / 2) / BM.s;
   if (BM.s !== s0) { clampBigMap(); drawBigMap(); }
 }
-const BM_BG = { base: '#211d16', nyc: '#0f1217', neon: '#0f1217', sand: '#211d16', perth: '#1a2119' };
+const BM_BG = { base: '#211d16', nyc: '#0f1217', neon: '#0f1217', sand: '#211d16', perth: '#1a2119', test: '#22201b' };
 function drawBigMap() {
   if (!BM.open) return;
   const cv = BM.cv, g = BM.g, w = cv.width, h = cv.height, M = W.mini, s = BM.s, u = BM.dpr;
@@ -95,6 +95,7 @@ function drawBigMap() {
   if (W.helipads && W.helipads.length) { const h = W.helipads, cx = h.reduce((a, p) => a + p.x, 0) / h.length, cz = h.reduce((a, p) => a + p.z, 0) / h.length; badge(cx, cz, 'H', '#9fd36b', { t: 'helipads' }); }
   if (W.tankSpots && W.tankSpots.length) { const h = W.tankSpots, cx = h.reduce((a, p) => a + p.x, 0) / h.length, cz = h.reduce((a, p) => a + p.z, 0) / h.length; badge(cx, cz, 'T', '#c2a36b', { t: 'tanks' }); }
   if (W.construct) badge(W.construct.cx, W.construct.cz, 'C', '#ff9f43', { t: 'construct' });
+  for (const q of (W.tz && W.tz.pois) || []) badge(q.x, q.z, q.ch, q.col, { t: 'tz', q });
   // gas stations
   for (const st of [...SHOP.list, ...MECH.list]) {
     const [x, y] = toS(st.cx, st.cz), k = 9 * u, L = st.kind === 'gas' ? null : STORE_LOOK[st.kind];
@@ -147,7 +148,7 @@ function drawPlaneGlyph(g, x, y, rot, k, col) {
 }
 
 // ---------- click a point on the map to find out what it is ----------
-function bmSame(a, b) { return a.t === b.t && a.st === b.st && a.pl === b.pl && a.d === b.d && a.v === b.v && a.N === b.N && a.sc === b.sc; }
+function bmSame(a, b) { return a.t === b.t && a.st === b.st && a.pl === b.pl && a.d === b.d && a.v === b.v && a.N === b.N && a.sc === b.sc && a.q === b.q; }
 function bmPick(cx, cy, touch) {
   if (!BM.pois) return null;
   const r = BM.cv.getBoundingClientRect(), x = (cx - r.left) * BM.dpr, y = (cy - r.top) * BM.dpr, tol = (touch ? 16 : 7) * BM.dpr;
@@ -207,6 +208,7 @@ function bmInfo(h) {
     case 'stadium': return { k: 'Stadium', title: 'Perth Stadium', text: 'Drive in through the tunnels onto the oval. There is usually a game on.', meta: [] };
     case 'helipads': return { k: 'Fort Redrock', title: 'Helipads', text: 'Hornet attack and Mule transport helicopters. Land on a pad to rearm rockets. Taking one puts the base on alert.', meta: [] };
     case 'tanks': return { k: 'Fort Redrock', title: 'Tank park', text: 'Ironclad tanks, fuelled and ready. The turret follows where you look; Q or click fires the cannon. Stealing one puts the base on alert.', meta: [] };
+    case 'tz': return { k: 'Testing Zone', title: h.q.title, text: h.q.text, meta: [] };
     case 'construct': return { k: 'Landmark', title: 'Construction site', text: 'A half-built tower, a crane, a stack of steel pipes and the fuel tanks. The Chain Reaction job starts here.', meta: [] };
   }
   return null;

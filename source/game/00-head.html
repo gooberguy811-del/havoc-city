@@ -43,6 +43,14 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #touch [data-k=lock]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 168px);width:56px;height:56px;font-size:10px;background:rgba(255,190,60,.35)}
 #touch [data-k=heal]{left:calc(var(--gutter-l) + 312px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(210,47,60,.45)}
 #fps{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:30;font:700 12px/1 system-ui,sans-serif;color:#cfe8d0;background:rgba(10,12,16,.55);padding:4px 7px;border-radius:4px;pointer-events:none;font-variant-numeric:tabular-nums}
+#styleHud{position:absolute;top:calc(var(--top) + 2px);left:50%;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:5;text-shadow:0 2px 8px rgba(0,0,0,.75)}
+#styleHud small{display:block;font-size:10px;font-weight:800;letter-spacing:.18em;color:var(--muted)}
+#styPts{display:block;font-family:var(--display);font-weight:400;font-size:32px;letter-spacing:.03em;color:#fff;line-height:1}
+#styMult{display:block;font-weight:800;font-size:13px;color:#ffb21e;min-height:16px}
+#styPops{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:2px}
+.stypop{font-weight:800;font-size:15px;color:#7fffb0;white-space:nowrap;animation:stypop 2.6s ease-out forwards}
+.stypop.bad{color:#ff6b6b}
+@keyframes stypop{0%{opacity:0;transform:translateY(6px) scale(.9)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
 #xhair{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45);pointer-events:none;z-index:2}
 #touch [data-k=hook]{left:calc(var(--gutter-l) + 250px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(240,240,240,.18)}
 #ui{position:fixed;inset:0;pointer-events:none;padding-left:var(--gutter-l);padding-right:var(--gutter-r);padding-block:var(--top) var(--bottom)}
@@ -395,6 +403,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 <div id="stage"></div>
 <div id="ui">
   <div id="hud" hidden>
+    <div id="styleHud" hidden><small>STYLE</small><b id="styPts">0</b><span id="styMult"></span><div id="styPops"></div></div>
     <div class="hud-tl"><div id="feed" aria-live="polite"></div></div>
     <div class="hud-tr">
       <div id="stars" aria-label="Wanted level"></div>
@@ -464,6 +473,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
         <button class="mapcard" data-map="perth" role="radio" aria-checked="false"><canvas width="320" height="200"></canvas><div><b>Perth</b><span>Swan River, Kings Park, the Narrows and Cottesloe.</span></div></button>
         <button class="mapcard" data-map="base" role="radio" aria-checked="false"><canvas width="320" height="200"></canvas><div><b>Fort Redrock</b><span>A huge desert army base with jets, tanks and attack choppers, plus a dusty town.</span></div></button>
         <button class="mapcard" data-map="nyc" role="radio" aria-checked="false"><canvas width="320" height="200"></canvas><div><b>New York</b><span>Skyscraper canyons, Times Square and Central Park.</span></div></button>
+        <button class="mapcard" data-map="test" role="radio" aria-checked="false"><canvas width="320" height="200"></canvas><div><b>Testing Zone</b><span>A proving ground: loop-the-loops, a mega ramp, jumps, bumps, a banked bowl and a drag strip.</span></div></button>
       </div>
       <div class="online" id="online" hidden>
         <div class="on-row"><b>Play with friends</b><span id="onStatus" aria-live="polite">Offline</span></div>

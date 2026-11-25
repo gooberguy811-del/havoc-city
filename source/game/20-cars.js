@@ -57,6 +57,13 @@ const BODIES = {
     top: [[-2.35, 0.3], [-2.38, 0.72], [-2.2, 0.84], [-1.1, 0.88], [0.2, 0.75], [1.4, 0.56], [2.32, 0.4], [2.35, 0.28]],
     cabin: [[-1.15, 0.86], [-0.6, 1.12], [0.15, 1.1], [0.95, 0.63]], hl: [2.2, 0.46], tl: [-2.36, 0.74], deck: [-2.1, 0.88],
     stats: { top: 78, acc: 19.5, grip: 1.25, mass: 1450, hp: 175 }
+  },
+  // all-electric: a long, low wedge with no grille, a glass canopy, slim light bars and a short tail; silent and savage off the line
+  roadster: {
+    name: 'Tesla Roadster', blurb: 'All-electric hypercar from the Testing Zone. Near-silent, a launch like a catapult and the highest top speed of anything on wheels.', L: 4.35, W: 1.98, wb: 2.65, wr: 0.36, track: 1.7, base: 0.27, unlock: 'roadster', electric: true,
+    top: [[-2.17, 0.31], [-2.2, 0.66], [-2.05, 0.82], [-1.5, 0.86], [-0.55, 0.84], [0.55, 0.76], [1.5, 0.62], [2.06, 0.5], [2.17, 0.4], [2.15, 0.3]],
+    cabin: [[-1.6, 0.85], [-0.9, 1.19], [0.05, 1.22], [1.0, 0.75]], hl: [2.07, 0.52], tl: [-2.19, 0.74], deck: [-1.95, 0.85],
+    stats: { top: 86, acc: 22, grip: 1.2, mass: 1700, hp: 110 }
   }
 };
 const bodyLocked = k => { const B = BODIES[k]; return !!(B && B.unlock && !(typeof MIS !== 'undefined' && MIS.unlocked && MIS.unlocked[B.unlock])); };

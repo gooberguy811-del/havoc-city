@@ -5,7 +5,7 @@
 # With TEST_DIR=<folder> it also writes <folder>/index.html, the debug build as a full page for the test scripts.
 set -e
 cd "$(dirname "$0")"
-FILES="00-head.html 10-core.js 12-look.js 13-sounds.js 20-cars.js 30-world.js 35-perth.js 36-nyc.js 37-base.js 40-vehicles.js 50-peds.js
+FILES="00-head.html 10-core.js 12-look.js 13-sounds.js 20-cars.js 30-world.js 35-perth.js 36-nyc.js 37-base.js 37t-testzone.js 40-vehicles.js 50-peds.js
   55-hero.js 57-weapons.js 58-shops.js 59-boom.js 60-game.js 61-destruct.js 62-air.js 62b-airport.js 63-bigmap.js 64-net.js 65-peer.js
   66-stores.js 67-dealer.js 68-extras.js 68c-construct.js 68m-military.js 68s-school.js 69-gfx.js 70-missions.js"
 mkdir -p out

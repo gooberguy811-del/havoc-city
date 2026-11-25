@@ -38,7 +38,7 @@ const SFX = {
       n.connect(g); g.connect(this.master); s.start(0, a + Math.random() * len); this.L[key] = { s, g, f, trim: SND_TRIM[name] || 1 };
     };
     mk('eng', 'eng', 2000); mk('engDiesel', 'engDiesel', 2000); mk('engBike', 'engBike', 2500); mk('prop', 'prop', 3000); mk('jet', 'jet', 6000);
-    mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
+    mk('ev', 'ev', 3000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
   },
   setVolume(v) { if (this.master) this.master.gain.value = v / 100 * 0.9; },
   ok(name, gap) { const t = performance.now(); if (this.last[name] && t - this.last[name] < gap) return false; this.last[name] = t; return !!this.ctx; },
@@ -114,12 +114,14 @@ const SFX = {
       let gi = 0; while (gi < gears.length - 2 && fr > gears[gi + 1]) gi++;
       let rpm = (fr - gears[gi]) / (gears[gi + 1] - gears[gi]); rpm = 0.22 + rpm * 0.78;
       if (sp < 1 || !P.onGround) rpm = Math.min(1, (sp < 1 ? 0.16 : rpm) + P.input.throttle * 0.35);
-      G.gear = P.vf < -0.5 ? 'R' : sp < 0.5 ? 'N' : String(gi + 1);
+      const ev = !!(BODIES[P.cfg.body] || {}).electric;
+      G.gear = P.vf < -0.5 ? 'R' : sp < 0.5 ? 'N' : ev ? 'D' : String(gi + 1);
       const thr = P.input.throttle, dmg = 1 - (P.engineDmg || 0) * 0.5;
-      eng = P.tank || P.st.mass >= 2000 ? 'engDiesel' : P.bike ? 'engBike' : 'eng';
+      eng = ev ? 'ev' : P.tank || P.st.mass >= 2000 ? 'engDiesel' : P.bike ? 'engBike' : 'eng';
       engR = (eng === 'engDiesel' ? 0.62 + rpm * (P.tank ? 0.55 : 0.95) : eng === 'engBike' ? 0.78 + rpm * 1.55 : 0.7 + rpm * 1.5) * sfF;
       engG = 0.34 + thr * 0.34 + rpm * 0.18; engF = (650 + thr * 3200 + rpm * 2600) * dmg;
-      if (G.gear !== this.lastGear && /\d/.test(G.gear) && /\d/.test(this.lastGear || '') && thr > 0.5) { const L = this.L[eng]; if (L) { L.g.gain.cancelScheduledValues(t); L.g.gain.setValueAtTime(0.12 * L.trim, t); } }
+      if (ev) { engR = (0.85 + fr * 2.1) * sfF; engG = 0.16 + thr * 0.3 + fr * 0.22; engF = (1500 + fr * 6500 + thr * 1500) * dmg; }   // an electric motor: one rising whir, no gears
+      if (!ev && G.gear !== this.lastGear && /\d/.test(G.gear) && /\d/.test(this.lastGear || '') && thr > 0.5) { const L = this.L[eng]; if (L) { L.g.gain.cancelScheduledValues(t); L.g.gain.setValueAtTime(0.12 * L.trim, t); } }
       this.lastGear = G.gear;
     } else if (live && G.plane && !G.plane.wreck) {
       const PL = G.plane, kind = PL.def.kind, r = PL.T, sp = PL.V.length();
@@ -128,7 +130,7 @@ const SFX = {
       else if (air === 'jet') { airR = (0.72 + r * 0.5 + Math.min(sp, 120) * 0.0015) * sfF; airG = 0.35 + r * 0.5; airF = 2500 + r * 7000; }
       else { airR = (0.68 + r * 0.6 + Math.min(sp, 80) * 0.002) * sfF; airG = 0.38 + r * 0.45; airF = 1400 + r * 4000; }
     }
-    for (const k of ['eng', 'engDiesel', 'engBike']) this.loopTo(k, k === eng ? engG : 0, k === eng ? engR : 0, k === eng ? engF : 0, k === eng ? 0.05 : 0.12);
+    for (const k of ['eng', 'engDiesel', 'engBike', 'ev']) this.loopTo(k, k === eng ? engG : 0, k === eng ? engR : 0, k === eng ? engF : 0, k === eng ? 0.05 : 0.12);
     for (const k of ['heli', 'jet', 'prop']) this.loopTo(k, k === air ? airG : 0, k === air ? airR : 0, k === air ? airF : 0, 0.1);
     this.lp.frequency.setTargetAtTime(G.slowmo > 0 && live ? 650 : 20000, t, 0.08);
     const sk = live && P ? (G.skid || 0) : 0; G.skid = Math.max(0, (G.skid || 0) - dt * 4);
@@ -246,6 +248,10 @@ function updateCamera(dt) {
       CAM.y = lerp(CAM.y, pl.y + D.camH - Math.sin(cpit) * dist + CAM.lp * dist * 0.8, damp(4, dt)); py = Math.max(CAM.y, heightAt(px, pz) + 1.2);
       lx = pl.x + cx * 10; lz = pl.z + cz * 10; ly = pl.y + 1.6 + Math.sin(cpit) * 10;
     }
+  } else if (car && car.loop && CAM.mode !== 2) {
+    const L = car.loop.L, cx = L.ex + L.sx * L.off / 2, cz = L.ez + L.sz * L.off / 2, back = L.R * 2.5 + 9;
+    px = cx - L.sx * back - L.dx * L.R * 0.6; pz = cz - L.sz * back - L.dz * L.R * 0.6; py = L.R * 1.1 + 2;
+    lx = car.x; ly = car.y + 1; lz = car.z; CAM.y = py; CAM.h = car.h;
   } else if (car) {
     const M = CAM_MODES[CAM.mode], upright = !car.flipped && !car.tumble;
     let th = car.h; if (sp > 4 && car.vf > 0 && upright) th = lerpA(car.h, Math.atan2(car.vx, car.vz), 0.35);
@@ -386,6 +392,7 @@ function feed(text, kind) {
   setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 600); }, 3600);
 }
 function onPlayerLand(v) {
+  styleLand(v);
   if (v.airT < 0.7) return;
   const dist = Math.hypot(v.x - v.airX, v.z - v.airZ);
   G.stats.bestAir = Math.max(G.stats.bestAir, v.airT); G.stats.bestAirDist = Math.max(G.stats.bestAirDist, dist);
@@ -613,7 +620,7 @@ function loadWorld(id) {
   W = genWorld(id);
   DECALS.clear();
   W.group = buildWorldMeshes(W); scene.add(W.group); buildShops(); initStructs(); initPlanes(); initPug(); initConstruct(); initTerminal(); initStadiumGame(); if (KIDS.list.length) hideKids(); KIDS.school = null; HERO.web = null; HERO.fly = false;
-  for (const pk of W.parked) { const v = new Vehicle(pk.cfg ? Object.assign(randomTrafficCfg(), pk.cfg) : randomTrafficCfg(), 'parked'); v.place(pk.x, pk.z, pk.h, 0); VEH.list.push(v); }
+  for (const pk of W.parked) { const v = new Vehicle(pk.cfg ? Object.assign(randomTrafficCfg(), pk.cfg) : randomTrafficCfg(), 'parked'); v.place(pk.x, pk.z, pk.h, 0); if (pk.showroom) { v.showroom = true; v.locked = true; } VEH.list.push(v); }
   spawnForSale(); clearThieves();
   APP.worldId = id;
   missionsLoad(); setupPickups(); setupMedkits(); clearWeapons();
@@ -741,7 +748,7 @@ function gameUpdate(rdt) {
   netUpdate(dt); updatePlanes(dt);
   vehiclePropHits(); updateProps(dt); updateBoom(dt); updateStructs(dt);
   updateShops(dt); updateStores(dt); updateExtras(dt); updateMilitary(dt); updateAirport(dt); updateKids(dt); updateGfx(dt); updatePeds(dt); syncChute(dt); updateDebris(dt); updateWeapons(dt);
-  updateWanted(dt); manageTraffic(dt); updateHeli(dt); updateMissions(dt);
+  updateWanted(dt); manageTraffic(dt); updateHeli(dt); updateMissions(dt); updateTestZone(dt);
   for (const v of VEH.list) { vehicleWater(v, dt); v.syncModel(dt); vehicleEffects(v, dt); }
   FX.smoke.update(dt); FX.blood.update(dt); FX.debris.update(dt); FX.fire.update(dt); DECALS.update(dt);
   updateTrafficLights();
@@ -778,7 +785,7 @@ const RIM_COLORS = ['#c9ccd2', '#2a2c30', '#d4af37', '#b03030', '#2f6fd9', '#f2f
 const NEONS = ['#ff2e88', '#22e0ff', '#3dff8b', '#b44dff', '#ffd02e', '#ff3b2e'];
 let garageTab = 'body';
 const TABS = [['body', 'Body'], ['paint', 'Paint'], ['wheels', 'Wheels'], ['style', 'Style'], ['tuning', 'Tuning']];
-const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job' };
+const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job', roadster: 'pass the Show Off trial at the Testing Zone' };
 function setCar(k, v) { if (k === 'body' && bodyLocked(v)) { feed(`To unlock the ${BODIES[v].name}, ${UNLOCK_HOW[BODIES[v].unlock] || 'finish its job'}`, 'red'); return; } carCfg[k] = v; saveCar(); garageSetCar(carCfg); renderGarageUI(); }
 function renderGarageUI() {
   const B = BODIES[carCfg.body];

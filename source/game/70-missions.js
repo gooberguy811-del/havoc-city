@@ -372,3 +372,16 @@ function updateMissionHUD() {
   if (MIS.objX != null) { const T = PF(); const d = Math.hypot(T.x - MIS.objX, T.z - MIS.objZ); const u = settings.units === 'mph'; t += ` <small>${u ? Math.round(d * 3.281) + ' ft' : Math.round(d) + ' m'}</small>`; }
   if (o.dataset.t !== t) { el('objText').innerHTML = t; o.dataset.t = t; }
 }
+
+// ---------- Testing Zone: Show Off (unlocks the Tesla Roadster) ----------
+MISSIONS.test = [{ id: 'showoff', name: 'Show Off', reward: 5000, time: 240, unlock: 'roadster', giver: [-30, 22],
+  blurb: 'The engineers want proof before they hand over the Roadster. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Loops, hoops, drifts, flips, big air and fast quarter miles all score, and chaining tricks builds a multiplier.',
+  steps: [{ t: 'style', pts: 15000, air: 3, text: 'Show off' }] }];
+STEP.style = {
+  start(st, s) { s.p0 = STY.pts; STY.runAir = 0; styleCrash(); },
+  update(st, s) {
+    const got = STY.pts - s.p0;
+    setObj(`Style ${got.toLocaleString()} / ${st.pts.toLocaleString()}  ·  best air ${STY.runAir.toFixed(1)} / ${st.air.toFixed(1)} s`);
+    if (got >= st.pts || STY.runAir >= st.air) nextStep();
+  }
+};

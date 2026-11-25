@@ -85,6 +85,8 @@ function rebuildMiniBldgs() {
   for (const b of W.bldgs) if (!gone.has(b)) mini.bldgs.rect(b.x0, b.z0, b.x1 - b.x0, b.z1 - b.z0);
   for (const r of W.miniRects || []) { if (STR.list.some(s => s.state && s.kind === 'shop' && Math.abs(s.x0 - r.x0) < 1 && Math.abs(s.z0 - r.z0) < 1)) continue; mini.bldgs.rect(r.x0, r.z0, r.x1 - r.x0, r.z1 - r.z0); }
   for (const r of W.ramps) mini.bldgs.rect(r.bx0, r.bz0, r.bx1 - r.bx0, r.bz1 - r.bz0);
+  for (const s of W.shapes || []) if (s.kind !== 'mogul' && s.kind !== 'bank' && s.kind !== 'bump' && s.kind !== 'rumble') mini.bldgs.rect(s.bx0, s.bz0, s.bx1 - s.bx0, s.bz1 - s.bz0);
+  for (const L of W.loopTracks || []) mini.bldgs.rect(Math.min(L.ex - L.R, L.ex + L.R), L.ez - 4, 2 * L.R, L.off + 8);
 }
 function damageStructsAt(x, y, z, power, src, extraR) {
   if (!STR.grid) return;
