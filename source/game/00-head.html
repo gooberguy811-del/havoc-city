@@ -50,6 +50,8 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(-
 #styPops{display:flex;flex-direction:column;align-items:center;gap:2px;margin-top:2px}
 .stypop{font-weight:800;font-size:15px;color:#7fffb0;white-space:nowrap;animation:stypop 2.6s ease-out forwards}
 .stypop.bad{color:#ff6b6b}
+#styleHud.low{top:calc(var(--top) + 128px)}
+#hud:has(#help.force) #styleHud{opacity:.12}
 @keyframes stypop{0%{opacity:0;transform:translateY(6px) scale(.9)}10%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
 #xhair{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.45);pointer-events:none;z-index:2}
 #touch [data-k=hook]{left:calc(var(--gutter-l) + 250px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:10px;background:rgba(240,240,240,.18)}
@@ -364,6 +366,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 #ui.touch #spd{font-size:44px}
 #ui.touch .meters{grid-template-columns:auto 92px}
 #ui.touch #help{display:none}
+#ui.touch #help.force{display:block;max-width:calc(100% - 32px);font-size:12px;bottom:auto;top:calc(var(--top) + 150px)}
 #ui.touch.flying .hud-br{flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px 14px;max-width:54vw}
 #ui.touch.flying .altrow{margin-top:0}
 #ui.touch.flying #touch [data-k=wpn].bomb, #touch [data-k=wpn].bomb{display:flex!important;background:rgba(200,53,43,.55)}
@@ -394,6 +397,8 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
   .meters{grid-template-columns:auto 110px}
   #minimap{width:128px;height:128px}
   #help{display:none}
+  #styleHud{top:calc(var(--top) + 52px)} #styleHud.low{top:calc(var(--top) + 176px)}
+  #help.force{display:block!important;max-width:calc(100% - 32px);font-size:12px;line-height:1.6;bottom:auto;top:calc(var(--top) + 150px)}
   #pauseBtn{display:block}
   #stars svg{width:24px;height:24px}
 }
@@ -430,7 +435,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
     <div id="fps" hidden></div>
-    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>Esc</kbd> pause</div>
+    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>
   <div id="mbanner" hidden><h2 id="mbTitle"></h2><p id="mbSub"></p></div>
@@ -532,6 +537,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div class="modal-card" role="dialog" aria-labelledby="pauseTitle">
       <h2 id="pauseTitle">Paused</h2>
       <button class="btn primary" id="resumeBtn">Resume</button>
+      <button class="btn" id="pControls">Controls</button>
       <button class="btn" id="pSettings">Settings</button>
       <button class="btn" id="pFriends">Friends</button>
       <button class="btn" id="pGarage">Garage</button>

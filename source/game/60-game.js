@@ -466,7 +466,7 @@ function updateHUD(dt) {
     for (const k in L) { const b = document.querySelector(`#touch [data-k=${k}]`); if (b) b.textContent = L[k]; }
   }
   if (HUD.stuntT > 0) { HUD.stuntT -= dt; if (HUD.stuntT <= 0) el('stunt').style.opacity = '0'; }
-  if (HUD.helpT > 0) { HUD.helpT -= dt; if (HUD.helpT <= 0) el('help').style.opacity = '0'; }
+  if (HUD.helpT > 0) { HUD.helpT -= dt; if (HUD.helpT <= 0) { el('help').style.opacity = '0'; el('help').classList.remove('force'); } }
   updateMissionHUD();
   drawMinimap();
 }
@@ -539,6 +539,7 @@ window.addEventListener('keydown', e => {
       else if (e.code === 'KeyG') useCarrot();
       else if (e.code === 'KeyX') useMedkit();
       else if (e.code === 'KeyL') toggleLock();
+      else if (e.code === 'KeyK') showHelp();
       else if (e.code === 'KeyV') fireHoming();
       else if (e.code === 'Space' && G.onFoot && canDeploy()) deployChute();
       else if (e.code === 'KeyF' || e.code === 'KeyE') toggleVehicle();
@@ -549,6 +550,8 @@ window.addEventListener('keydown', e => {
 });
 window.addEventListener('keyup', e => { KEYS[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = false; for (const k in TOUCH) TOUCH[k] = false; });
+// the controls list fades after a while; K (or Controls in the pause menu) brings it back
+function showHelp() { HUD.helpT = 14; const h = el('help'); h.classList.add('force'); h.style.opacity = '1'; }
 function cycleCamera() {
   if (rbxFoot()) { CAM.zd = CAM.zd < RBX.fp ? RBX.def : RBX.min; feed('Camera: ' + (CAM.zd < RBX.fp ? 'First person' : 'Third person')); rbxPointer(true); return; }
   CAM.mode = (CAM.mode + 1) % CAM_MODES.length; CAM.lp = 0; CAM.ly = 0; feed('Camera: ' + (CAM.mode === 2 && (G.onFoot || (G.player && G.player.bike)) ? 'First person' : CAM_MODES[CAM.mode].name)); }
@@ -983,6 +986,7 @@ function boot() {
   // Ctrl is easy to hold while pressing W: ask before the tab closes mid-game
   window.addEventListener('beforeunload', e => { if (APP.mode === 'game' && settings.camStyle !== 'classic') { e.preventDefault(); e.returnValue = ''; } });
   $('#pQuit').onclick = () => { showMenu(); };
+  $('#pControls').onclick = () => { togglePause(false); showHelp(); };
   $('#pauseBtn').onclick = () => togglePause(true);
   document.addEventListener('visibilitychange', () => { if (document.hidden && APP.mode === 'game' && !APP.paused) togglePause(true); });
   onResize(); applyQuality();

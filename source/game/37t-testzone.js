@@ -313,6 +313,7 @@ function updateTestZone(dt) {
   const hud = STY.hud || (STY.hud = $('#styleHud'));
   if (!W || !W.testZone || APP.mode !== 'game') { if (hud && !hud.hidden) hud.hidden = true; return; }
   if (hud && hud.hidden) hud.hidden = false;
+  if (hud) { const low = !el('obj').hidden; if (hud.classList.contains('low') !== low) hud.classList.toggle('low', low); }   // sit below the mission panel, never on top of it
   const v = G.player, live = !!v && !G.down && !v.wrecked && !G.onFoot;
   if (live) {
     const sp = Math.hypot(v.vx, v.vz), fx = Math.sin(v.h), fz = Math.cos(v.h);
