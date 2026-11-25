@@ -25,7 +25,7 @@ class Vehicle {
     this.cr = this.halfW * 1.0; this.co = [d.front - this.cr, (d.front + d.rear) / 2, d.rear + this.cr];
     this.x = 0; this.z = 0; this.y = 0; this.vx = 0; this.vz = 0; this.vy = 0; this.h = 0; this.av = 0; this.steer = 0; this.onGround = true; this.pitch = 0; this.lean = 0; this.vf = 0;
     this.roll = 0; this.rollV = 0; this.pit = 0; this.pitV = 0; this.tumble = false; this.flipped = false;
-    this.health = this.st.hp; this.maxHp = this.st.hp; this.wrecked = false; this.nitro = 1; this.boosting = false; this.slip = 0;
+    this.health = this.st.hp; this.maxHp = this.st.hp; this.wrecked = false; this.nitro = 1; this.air = 1; this.boosting = false; this.slip = 0;
     this.wdmg = [0, 0, 0, 0]; this.wlost = [false, false, false, false]; this.lostCount = 0; this.drag = 0; this.pull = 0;
     this.engineDmg = 0; this.frontDmg = 0; this.rearDmg = 0; this.glassBroken = false; this.headBroken = false; this.tailBroken = false; this.uniq = false;
     this.abandoned = false; this.mission = false; this.own = false; this.ry = 0; this.pvf = 0; this.accF = 0; this.skid = null;
@@ -53,6 +53,7 @@ class Vehicle {
     let pt;
     if (upright) { const hf = heightAt(this.x + fx * hb, this.z + fz * hb), hr = heightAt(this.x - fx * hb, this.z - fz * hb); pt = -Math.atan2(hf - hr, this.st.wb); }
     else if (this.tumble || this.flipped) pt = 0;
+    else if (this.jetOn) pt = clamp((this.input.brake - this.input.throttle) * 0.14, -0.2, 0.2);
     else pt = clamp(-Math.atan2(this.vy, Math.max(4, Math.abs(this.vf))) * 0.7, -0.6, 0.6);
     this.pitch = this.loop ? 0 : lerp(this.pitch, pt, dt ? damp(upright ? 14 : 3, dt) : 1);
     // lean with the ground side to side too (banked turns, ramp edges, kerbs)
@@ -93,6 +94,11 @@ class Vehicle {
 function stepVehicle(v, dt) {
   if (v.remote) return;
   if (v.loop) { loopStep(v, dt); return; }
+  const TB = BODIES[v.cfg.body];
+  v.jetOn = !!(TB && TB.thrusters) && !v.wrecked && !v.sunk && !!v.input.jet && v.air > 0.01 && !v.tumble && !v.flipped;
+  if (v.onGround && !v.jetOn) v.jetUsed = false;
+  if (v.jetOn && v.onGround) { v.onGround = false; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; v.rollV = 0; v.vy = Math.max(v.vy || 0, 3); v.y += 0.05; }
+  if (v.jetOn) v.jetUsed = true;
   const inp = v.input, st = v.st;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), rx = -fz, rz = fx;
   let vf = v.vx * fx + v.vz * fz, vr = v.vx * rx + v.vz * rz;
@@ -137,11 +143,24 @@ function stepVehicle(v, dt) {
     const k = Math.exp(-2.4 * dt); v.vx *= k; v.vz *= k; v.av *= Math.exp(-3 * dt); v.boosting = false;
   } else {
     v.vy -= GRAV * dt; v.av *= Math.exp(-0.6 * dt); if (!v.tumble) v.av += v.steer * 0.9 * dt; v.boosting = false;
+    if (v.jetOn) {   // SpaceX thruster pack: cold-gas jets lift you, W / S thrust forward and back, A / D turn
+      v.vy += (34 + (v.vy < 0 ? 12 : 0)) * dt; v.vy = Math.min(v.vy, 14);
+      let hf = v.vx * fx + v.vz * fz, hr = v.vx * rx + v.vz * rz;
+      hf = clamp(hf + (inp.throttle * 18 - inp.brake * 16) * dt, -15, 65); hr *= Math.exp(-2.5 * dt);
+      v.vx = fx * hf + rx * hr; v.vz = fz * hf + rz * hr; vf = hf;
+      v.av += (inp.steer * 1.5 - v.av) * Math.min(1, dt * 4);
+    }
   }
   v.vf = vf;
   v.h += v.av * dt; v.x += v.vx * dt; v.z += v.vz * dt;
+  if (TB && TB.thrusters && !v.onGround && W.bounds) {   // the edge walls are low, so a flying Roadster gets an invisible ceiling-high fence
+    const B = W.bounds, m = 4;
+    if (v.x < B.x0 + m) { v.x = B.x0 + m; v.vx = Math.max(0, v.vx); } else if (v.x > B.x1 - m) { v.x = B.x1 - m; v.vx = Math.min(0, v.vx); }
+    if (v.z < B.z0 + m) { v.z = B.z0 + m; v.vz = Math.max(0, v.vz); } else if (v.z > B.z1 - m) { v.z = B.z1 - m; v.vz = Math.min(0, v.vz); }
+  }
   if (v.boosting) v.nitro = Math.max(0, v.nitro - dt * 0.3); else v.nitro = Math.min(1, v.nitro + dt * 0.06);
-  const gh = heightAt(v.x, v.z);
+  if (TB && TB.thrusters) { if (v.jetOn) v.air = Math.max(0, v.air - dt * 0.2); else if (v.onGround) v.air = Math.min(1, v.air + dt * 0.14); }   // about 5 s of thrust; the compressor refills it on the ground
+  const gh = TB && TB.thrusters ? Math.max(heightAt(v.x, v.z), roofAt(v.x, v.z, v.y)) : heightAt(v.x, v.z);   // a flying car can set down on rooftops
   if (v.tumble) {
     v.y += v.vy * dt;
     v.roll = wrapA(v.roll + v.rollV * dt); v.pit = clamp(v.pit + v.pitV * dt, -1.35, 1.35);
@@ -213,6 +232,7 @@ function reqOffset(v) {
   return cr * cp * v.hc + sr * v.halfW + sp * (v.front - v.rear) * 0.4 - v.hc;
 }
 function bikeFlipLanded(v, type, n) {
+  if (v.jetUsed) return;   // no flip credit for thruster-assisted flights
   const word = (n === 2 ? 'Double ' : n >= 3 ? 'Triple ' : '') + (type === 'back' ? 'backflip' : 'frontflip');
   if (v === G.player) { feed(word.charAt(0).toUpperCase() + word.slice(1) + '!  +$' + 75 * n, 'green'); addCash(75 * n); SFX.ding(); G.stats.flips = (G.stats.flips || 0) + n; }
   MIS.lastFlip = { type, n, t: GT };
@@ -580,8 +600,24 @@ function explode(x, y, z, power, src, self, big, remote) {
   damagePlanesAt(x, y, z, big ? 30 : 7 * power, power, src);
   if (HELI.active && !HELI.down) { const d = Math.hypot(HELI.x - x, HELI.y - y, HELI.z - z), R2 = (big ? 30 : 9 * power); if (d < R2) heliDamage((1 - d / R2) * 260 * power, isPlayerSrc(src)); }
 }
+// the Roadster's thruster plumes: four see-through cones of cold gas under the corners, made on first use
+let JET_GEO = null, JET_MAT = null;
+function jetPlumes(v) {
+  if (!JET_GEO) {
+    JET_GEO = new THREE.ConeGeometry(0.3, 1.8, 12, 6, true); JET_GEO.translate(0, -0.9, 0);   // nozzle at the tip, widening downward
+    const pos = JET_GEO.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) { const b = Math.pow(1 + pos.getY(i) / 1.8, 2.2); col[i * 3] = 0.62 * b; col[i * 3 + 1] = 0.74 * b; col[i * 3 + 2] = 0.9 * b; }   // additive, so fading to black fades it out
+    JET_GEO.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    JET_MAT = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, toneMapped: false });
+  }
+  const g = new THREE.Group(), f = 0.42 * (v.front - v.rear);
+  for (const [z, x] of [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
+  g.visible = false; v.model.root.add(g); return g;
+}
 function vehicleEffects(v, dt) {
   const hp = v.health / v.maxHp, fx = Math.sin(v.h), fz = Math.cos(v.h);
+  if (v.jetOn && !v.jetFX && v.model && v.model.root) v.jetFX = jetPlumes(v);
+  if (v.jetFX) { v.jetFX.visible = !!v.jetOn; if (v.jetOn) for (const c of v.jetFX.children) { const k = 0.85 + Math.random() * 0.3; c.scale.set(k, 0.8 + Math.random() * 0.45, k); } }
   const d2 = (v.x - camera.position.x) ** 2 + (v.z - camera.position.z) ** 2;
   if (d2 > 180 * 180) return;
   if (d2 < 110 * 110 && !v.wrecked) updateSkids(v); else v.skid = null;
@@ -607,6 +643,14 @@ function vehicleEffects(v, dt) {
   if (v.onGround && (v.slip > 4.5 || (v.input.throttle > 0.9 && sp < 6 && v.input.hand)) && Math.random() < 0.7) {
     for (const s of [1, -1]) { const rx = v.x - fx * v.st.wb / 2 + fz * s * 0.8, rz = v.z - fz * v.st.wb / 2 - fx * s * 0.8; FX.smoke.emit(rx, v.y + 0.3, rz, rand(-0.5, 0.5), rand(0.4, 1.2), rand(-0.5, 0.5), rand(1, 1.8), rand(0.5, 0.9), COL.smoke, 0.32, -0.3, 1, 1.4, 4); }
     if (v === G.player) G.skid = Math.max(G.skid || 0, clamp((v.slip - 3) / 8, 0, 1));
+  }
+  if (v.jetOn) for (const [a, s] of [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
+    const f = a * (v.front - v.rear), ex = v.x + fx * f + fz * s * 0.7, ez = v.z + fz * f - fx * s * 0.7;
+    if (Math.random() < 0.6) FX.smoke.emit(ex, v.y - 1.2, ez, rand(-0.8, 0.8), rand(-7, -4), rand(-0.8, 0.8), rand(0.25, 0.4), rand(0.4, 0.6), COL.jetGas, 0.45, 0, 3, 2.6, 4);
+  }
+  if (v.jetOn && Math.random() < 0.5) {   // close to the ground the blast kicks up a ring of dust
+    const gy = heightAt(v.x, v.z), agl = v.y - gy;
+    if (agl < 6) { const a = rand(0, TAU), sp = rand(5, 9) * (1 - agl / 7); FX.smoke.emit(v.x + Math.cos(a) * 1.5, gy + 0.2, v.z + Math.sin(a) * 1.5, Math.cos(a) * sp, rand(0.3, 1), Math.sin(a) * sp, rand(0.6, 1.1), rand(0.6, 1), COL.dust, 0.4, -0.2, 1.4, 1.6, 4); }
   }
   if (v.boosting) for (const s of [1, -1]) { const ex = v.x + fx * (v.rear - 0.1) + fz * s * 0.4, ez = v.z + fz * (v.rear - 0.1) - fx * s * 0.4; FX.fire.emit(ex, v.y + 0.42, ez, -fx * 8 + rand(-0.5, 0.5), rand(-0.2, 0.4), -fz * 8 + rand(-0.5, 0.5), rand(0.08, 0.18), rand(0.25, 0.45), COL.nitro, 1, 0, 3, -0.5, 0); }
 }

@@ -240,7 +240,7 @@ function netState() {
   if (G.player) {
     const v = G.player; if (!v.netId) v.netId = ++NET.carId;
     if (NET.cfgFor !== v) { NET.cfgFor = v; NET.cfg = netPackCfg(v.cfg); NET.cfgDirty = true; }
-    return Object.assign(base, { md: G.down ? 'd' : 'c', x: nr2(v.x), y: nr2(v.y), z: nr2(v.z), h: nr2(v.h), vx: nr1(v.vx), vy: nr1(v.vy || 0), vz: nr1(v.vz), r: nr2(v.roll || 0), pt: nr2(v.pit || 0), air: v.onGround ? 0 : 1, tb: v.tumble ? 1 : 0, fl: v.flipped ? 1 : 0, hp: Math.round(clamp(v.health / v.maxHp, 0, 1) * 100), wr: v.wrecked ? 1 : 0, ci: v.netId, pol: v.police ? 1 : 0, nb: v.boosting ? 1 : 0, sr: nr2(v.input.steer || 0), ln: v.bike ? nr2(v.bikeLean) : undefined, wh: v.bike && v.wh > 0.02 ? nr2(v.wh) : undefined });
+    return Object.assign(base, { md: G.down ? 'd' : 'c', x: nr2(v.x), y: nr2(v.y), z: nr2(v.z), h: nr2(v.h), vx: nr1(v.vx), vy: nr1(v.vy || 0), vz: nr1(v.vz), r: nr2(v.roll || 0), pt: nr2(v.pit || 0), air: v.onGround ? 0 : 1, tb: v.tumble ? 1 : 0, fl: v.flipped ? 1 : 0, hp: Math.round(clamp(v.health / v.maxHp, 0, 1) * 100), wr: v.wrecked ? 1 : 0, ci: v.netId, pol: v.police ? 1 : 0, nb: v.boosting ? 1 : 0, jt: v.jetOn ? 1 : undefined, sr: nr2(v.input.steer || 0), ln: v.bike ? nr2(v.bikeLean) : undefined, wh: v.bike && v.wh > 0.02 ? nr2(v.wh) : undefined });
   }
   return Object.assign(base, { md: 'x' });
 }
@@ -325,7 +325,7 @@ function netDriveAvatar(N, s, dt) {
     const v = a;
     v.x = N.x; v.y = N.y; v.z = N.z; v.h = N.h; v.vx = nnum(s.vx); v.vz = nnum(s.vz); v.vy = nnum(s.vy);
     v.vf = v.vx * Math.sin(v.h) + v.vz * Math.cos(v.h); v.av = 0;
-    v.roll = nnum(s.r); v.pit = nnum(s.pt); v.onGround = !s.air; v.netLean = clamp(nnum(s.ln), -0.9, 0.9); v.netWh = clamp(nnum(s.wh), 0, 0.5); v.tumble = !!s.tb; v.flipped = !!s.fl; v.boosting = !!s.nb; v.input.steer = clamp(nnum(s.sr), -1, 1);
+    v.roll = nnum(s.r); v.pit = nnum(s.pt); v.onGround = !s.air; v.netLean = clamp(nnum(s.ln), -0.9, 0.9); v.netWh = clamp(nnum(s.wh), 0, 0.5); v.tumble = !!s.tb; v.flipped = !!s.fl; v.boosting = !!s.nb; v.jetOn = !!s.jt; v.input.steer = clamp(nnum(s.sr), -1, 1);
     v.health = clamp(nnum(s.hp, 100), 0, 100) / 100 * v.maxHp;
     if (s.wr && !v.wrecked) { v.wrecked = true; v.burnT = 22; burnModel(v.model); }
     v.obj.visible = Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < QUALITY[settings.quality].draw;

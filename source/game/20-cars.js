@@ -60,7 +60,7 @@ const BODIES = {
   },
   // all-electric: a long, low wedge with no grille, a glass canopy, slim light bars and a short tail; silent and savage off the line
   roadster: {
-    name: 'Tesla Roadster', blurb: 'All-electric hypercar from the Testing Zone. Near-silent, a launch like a catapult and the highest top speed of anything on wheels.', L: 4.35, W: 1.98, wb: 2.65, wr: 0.36, track: 1.7, base: 0.27, unlock: 'roadster', electric: true,
+    name: 'Tesla Roadster', blurb: 'All-electric hypercar from the Testing Zone, with a SpaceX thruster pack: hold J to fly on compressed air. Near-silent, a launch like a catapult and the highest top speed of anything on wheels.', L: 4.35, W: 1.98, wb: 2.65, wr: 0.36, track: 1.7, base: 0.27, unlock: 'roadster', electric: true, thrusters: true,
     top: [[-2.17, 0.31], [-2.2, 0.66], [-2.05, 0.82], [-1.5, 0.86], [-0.55, 0.84], [0.55, 0.76], [1.5, 0.62], [2.06, 0.5], [2.17, 0.4], [2.15, 0.3]],
     cabin: [[-1.6, 0.85], [-0.9, 1.19], [0.05, 1.22], [1.0, 0.75]], hl: [2.07, 0.52], tl: [-2.19, 0.74], deck: [-1.95, 0.85],
     stats: { top: 86, acc: 22, grip: 1.2, mass: 1700, hp: 110 }

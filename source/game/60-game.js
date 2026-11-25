@@ -38,7 +38,7 @@ const SFX = {
       n.connect(g); g.connect(this.master); s.start(0, a + Math.random() * len); this.L[key] = { s, g, f, trim: SND_TRIM[name] || 1 };
     };
     mk('eng', 'eng', 2000); mk('engDiesel', 'engDiesel', 2000); mk('engBike', 'engBike', 2500); mk('prop', 'prop', 3000); mk('jet', 'jet', 6000);
-    mk('ev', 'ev', 3000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
+    mk('ev', 'ev', 3000); mk('thr', 'jet', 7000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
   },
   setVolume(v) { if (this.master) this.master.gain.value = v / 100 * 0.9; },
   ok(name, gap) { const t = performance.now(); if (this.last[name] && t - this.last[name] < gap) return false; this.last[name] = t; return !!this.ctx; },
@@ -141,6 +141,7 @@ const SFX = {
     this.loopTo('siren', sir * sir * 0.5, 0, 0, 0.12);
     const hv = live && F && HELI.active ? clamp(1 - Math.hypot(HELI.x - F.x, HELI.z - F.z) / 200, 0, 1) : 0;
     this.loopTo('heliCop', hv * hv * 0.9, 0, 900 + hv * 2500, 0.2);
+    this.loopTo('thr', live && P && P.jetOn ? 0.5 : 0, 1.55 + (P && P.jetOn ? P.input.throttle * 0.15 : 0), 7500, 0.05);   // thruster hiss
     if (!live && this.horn) this.hornSet(false);
   }
 };
@@ -392,6 +393,7 @@ function feed(text, kind) {
   setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 600); }, 3600);
 }
 function onPlayerLand(v) {
+  if (v.jetUsed) return;   // a thruster flight isn't a stunt jump
   styleLand(v);
   if (v.airT < 0.7) return;
   const dist = Math.hypot(v.x - v.airX, v.z - v.airZ);
@@ -413,6 +415,11 @@ function updateHUD(dt) {
   hudH('spdrow', foot); hudH('n2oLabel', foot); hudH('n2oBar', foot);
   hudT('hpLabel', PL ? 'Hull' : foot ? 'Health' : 'Body');
   hudT('n2oLabel', PL ? 'Throttle' : 'Nitro');
+  { // the Roadster's thruster pack runs on its own compressed-air tank, so it gets its own gauge
+    const thr = !PL && !foot && !!P && !!(BODIES[P.cfg.body] || {}).thrusters;
+    hudH('airLabel', !thr); hudH('airRow', !thr); if (APP.touch) hudH('jetBtn', !thr);
+    if (thr) { hudS('airFill', 'width', (P.air * 100).toFixed(1) + '%'); const r = el('airRow'), lo = P.air < 0.2, on = !!P.jetOn; if (HUD.airLo !== lo) { HUD.airLo = lo; r.classList.toggle('low', lo); } if (HUD.airOn !== on) { HUD.airOn = on; r.classList.toggle('on', on); } }
+  }
   if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; hudH('altrow', !PL); $('#ui').classList.toggle('flying', !!PL); }
   { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); hudT('bombsV', bt); const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
   let hp;
@@ -608,8 +615,9 @@ function readInput(P) {
   }
   ARMS.trigger = !G.down && !!P && ARMS.cur > 0 && gunsOn() && !!KEYS.KeyQ;
   const park = G.down || !P ? 1 : 0;
-  if (park) { thr = 0; brk = 0; steer = 0; hand = false; nitro = false; horn = false; }
-  if (P) Object.assign(P.input, { throttle: thr, brake: brk, steer, hand: hand ? 1 : 0, nitro: nitro ? 1 : 0, park });
+  let jet = !!(KEYS.KeyJ || TOUCH.jet);
+  if (park) { thr = 0; brk = 0; steer = 0; hand = false; nitro = false; horn = false; jet = false; }
+  if (P) Object.assign(P.input, { throttle: thr, brake: brk, steer, hand: hand ? 1 : 0, nitro: nitro ? 1 : 0, park, jet: jet ? 1 : 0 });
   if (horn !== hornOn) { hornOn = horn; SFX.hornSet(horn); if (horn && P) for (const p of PED.list) if (p.active && !p.rag && (p.x - P.x) ** 2 + (p.z - P.z) ** 2 < 400 && Math.random() < 0.5) panic(p, P.x, P.z, 3); }
   if (nitro && P && P.boosting && !G.nitroWas) SFX.whoosh(); G.nitroWas = P && P.boosting;
 }

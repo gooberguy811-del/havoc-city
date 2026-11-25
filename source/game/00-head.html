@@ -205,6 +205,9 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 .meters i{display:block;height:7px;background:rgba(20,23,30,.85);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
 .meters i em{display:block;height:100%;width:100%;background:var(--good);border-radius:4px}
 .meters i.n2o em{background:linear-gradient(90deg,#3f7dff,#7fd3ff)}
+.meters i.air em{background:linear-gradient(90deg,#b9c6d6,#f4fbff)}
+.meters i.air.low em{background:linear-gradient(90deg,#ff8a3c,#ffc46b)}
+.meters i.air.on{box-shadow:0 0 8px rgba(220,240,255,.55)}
 #minimap{display:block;width:176px;height:176px;border-radius:50%;box-shadow:0 0 0 3px rgba(12,14,19,.85),0 6px 20px rgba(0,0,0,.5)}
 #mapLabel{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-weight:700;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);text-shadow:0 1px 3px #000}
 #feed{display:flex;flex-direction:column;gap:5px}
@@ -342,6 +345,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 #touch [data-k=brake]{right:calc(var(--gutter-r) + 104px);bottom:calc(var(--bottom) + 6px);width:74px;height:74px}
 #touch [data-k=hand]{right:calc(var(--gutter-r) + 108px);bottom:calc(var(--bottom) + 92px);width:64px;height:64px}
 #touch [data-k=nitro]{right:calc(var(--gutter-r) + 14px);bottom:calc(var(--bottom) + 110px);width:64px;height:64px}
+#touch [data-k=jet]{right:calc(var(--gutter-r) + 14px);bottom:calc(var(--bottom) + 186px);width:64px;height:64px;background:rgba(220,235,255,.22);border-color:rgba(230,242,255,.6)}
 #touch [data-k=cam]{left:var(--gutter-l);bottom:calc(var(--bottom) + 104px);width:50px;height:50px;font-size:11px}
 #touch [data-k=horn]{left:calc(var(--gutter-l) + 62px);bottom:calc(var(--bottom) + 104px);width:50px;height:50px;font-size:11px}
 #touch [data-k=enter]{left:calc(var(--gutter-l) + 124px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:12px;background:rgba(255,178,30,.3);border-color:var(--sodium)}
@@ -422,7 +426,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
       <div class="wpn" id="wpn"><span id="wpnName">Pistol</span><b id="wpnAmmo">12 / 84</b></div>
       <div class="spdrow" id="spdrow"><span id="spd">0</span><div class="unit"><span id="gear">N</span><small id="unit">KM/H</small></div></div>
       <div class="altrow" id="altrow" hidden><span id="stall" hidden>STALL</span><b id="altV">0</b><small id="altU">ALT M</small><small id="bombsV" class="bombs"></small></div>
-      <div class="meters"><span id="hpLabel">Body</span><i><em id="hpFill"></em></i><span id="arLabel" hidden>Armour</span><i id="arRow" class="ar" hidden><em id="arFill"></em></i><span id="n2oLabel">Nitro</span><i class="n2o" id="n2oBar"><em id="nitroFill"></em></i></div>
+      <div class="meters"><span id="hpLabel">Body</span><i><em id="hpFill"></em></i><span id="arLabel" hidden>Armour</span><i id="arRow" class="ar" hidden><em id="arFill"></em></i><span id="n2oLabel">Nitro</span><i class="n2o" id="n2oBar"><em id="nitroFill"></em></i><span id="airLabel" hidden>Air</span><i class="air" id="airRow" hidden><em id="airFill"></em></i></div>
     </div>
     <div id="stunt"></div>
     <div id="obj" hidden><div class="obj-top"><span id="objName"></span><span id="objTime"></span></div><p id="objText"></p></div>
@@ -435,7 +439,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
     <div id="fps" hidden></div>
-    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
+    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>J</kbd> Roadster thrusters · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>
   <div id="mbanner" hidden><h2 id="mbTitle"></h2><p id="mbSub"></p></div>
@@ -455,6 +459,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <button data-k="brake">BRAKE</button>
     <button data-k="hand">DRIFT</button>
     <button data-k="nitro">N2O</button>
+    <button data-k="jet" id="jetBtn" hidden>JET</button>
     <button data-k="cam">CAM</button>
     <button data-k="horn">HORN</button>
     <button data-k="enter">CAR</button>
@@ -499,7 +504,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
         <button class="btn" id="settingsBtn">Settings</button>
         <button class="btn" id="friendsBtn">Friends<i id="friendsBtnBadge" hidden></i></button>
       </div>
-      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
+      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · hold <kbd>J</kbd> to fly the Tesla Roadster on its thrusters · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
     </div>
   </section>
 

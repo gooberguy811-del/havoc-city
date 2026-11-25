@@ -213,6 +213,9 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 .meters i{display:block;height:7px;background:rgba(20,23,30,.85);border-radius:4px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
 .meters i em{display:block;height:100%;width:100%;background:var(--good);border-radius:4px}
 .meters i.n2o em{background:linear-gradient(90deg,#3f7dff,#7fd3ff)}
+.meters i.air em{background:linear-gradient(90deg,#b9c6d6,#f4fbff)}
+.meters i.air.low em{background:linear-gradient(90deg,#ff8a3c,#ffc46b)}
+.meters i.air.on{box-shadow:0 0 8px rgba(220,240,255,.55)}
 #minimap{display:block;width:176px;height:176px;border-radius:50%;box-shadow:0 0 0 3px rgba(12,14,19,.85),0 6px 20px rgba(0,0,0,.5)}
 #mapLabel{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-weight:700;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);text-shadow:0 1px 3px #000}
 #feed{display:flex;flex-direction:column;gap:5px}
@@ -350,6 +353,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 #touch [data-k=brake]{right:calc(var(--gutter-r) + 104px);bottom:calc(var(--bottom) + 6px);width:74px;height:74px}
 #touch [data-k=hand]{right:calc(var(--gutter-r) + 108px);bottom:calc(var(--bottom) + 92px);width:64px;height:64px}
 #touch [data-k=nitro]{right:calc(var(--gutter-r) + 14px);bottom:calc(var(--bottom) + 110px);width:64px;height:64px}
+#touch [data-k=jet]{right:calc(var(--gutter-r) + 14px);bottom:calc(var(--bottom) + 186px);width:64px;height:64px;background:rgba(220,235,255,.22);border-color:rgba(230,242,255,.6)}
 #touch [data-k=cam]{left:var(--gutter-l);bottom:calc(var(--bottom) + 104px);width:50px;height:50px;font-size:11px}
 #touch [data-k=horn]{left:calc(var(--gutter-l) + 62px);bottom:calc(var(--bottom) + 104px);width:50px;height:50px;font-size:11px}
 #touch [data-k=enter]{left:calc(var(--gutter-l) + 124px);bottom:calc(var(--bottom) + 104px);width:56px;height:56px;font-size:12px;background:rgba(255,178,30,.3);border-color:var(--sodium)}
@@ -430,7 +434,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
       <div class="wpn" id="wpn"><span id="wpnName">Pistol</span><b id="wpnAmmo">12 / 84</b></div>
       <div class="spdrow" id="spdrow"><span id="spd">0</span><div class="unit"><span id="gear">N</span><small id="unit">KM/H</small></div></div>
       <div class="altrow" id="altrow" hidden><span id="stall" hidden>STALL</span><b id="altV">0</b><small id="altU">ALT M</small><small id="bombsV" class="bombs"></small></div>
-      <div class="meters"><span id="hpLabel">Body</span><i><em id="hpFill"></em></i><span id="arLabel" hidden>Armour</span><i id="arRow" class="ar" hidden><em id="arFill"></em></i><span id="n2oLabel">Nitro</span><i class="n2o" id="n2oBar"><em id="nitroFill"></em></i></div>
+      <div class="meters"><span id="hpLabel">Body</span><i><em id="hpFill"></em></i><span id="arLabel" hidden>Armour</span><i id="arRow" class="ar" hidden><em id="arFill"></em></i><span id="n2oLabel">Nitro</span><i class="n2o" id="n2oBar"><em id="nitroFill"></em></i><span id="airLabel" hidden>Air</span><i class="air" id="airRow" hidden><em id="airFill"></em></i></div>
     </div>
     <div id="stunt"></div>
     <div id="obj" hidden><div class="obj-top"><span id="objName"></span><span id="objTime"></span></div><p id="objText"></p></div>
@@ -443,7 +447,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
     <div id="fps" hidden></div>
-    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
+    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>J</kbd> Roadster thrusters · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>
   <div id="mbanner" hidden><h2 id="mbTitle"></h2><p id="mbSub"></p></div>
@@ -463,6 +467,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <button data-k="brake">BRAKE</button>
     <button data-k="hand">DRIFT</button>
     <button data-k="nitro">N2O</button>
+    <button data-k="jet" id="jetBtn" hidden>JET</button>
     <button data-k="cam">CAM</button>
     <button data-k="horn">HORN</button>
     <button data-k="enter">CAR</button>
@@ -507,7 +512,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
         <button class="btn" id="settingsBtn">Settings</button>
         <button class="btn" id="friendsBtn">Friends<i id="friendsBtnBadge" hidden></i></button>
       </div>
-      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
+      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · hold <kbd>J</kbd> to fly the Tesla Roadster on its thrusters · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
     </div>
   </section>
 
@@ -989,7 +994,7 @@ function initColors() {
     smoke: C('#8c8c8c'), dark: C('#2a2826'), fire: new THREE.Color(1.0, 0.45, 0.12), fireHot: new THREE.Color(1.2, 0.85, 0.4),
     spark: new THREE.Color(1.3, 0.9, 0.4), blood: C('#8a0710'), blood2: C('#5c0309'), water: C('#d4ecff'), dust: C('#b9a684'),
     head: new THREE.Color(1.0, 0.95, 0.8), tail: new THREE.Color(1.0, 0.08, 0.06), sodium: new THREE.Color(1.0, 0.62, 0.22),
-    sirenR: new THREE.Color(1.0, 0.1, 0.12), sirenB: new THREE.Color(0.15, 0.3, 1.0), nitro: new THREE.Color(0.35, 0.6, 1.3),
+    sirenR: new THREE.Color(1.0, 0.1, 0.12), sirenB: new THREE.Color(0.15, 0.3, 1.0), nitro: new THREE.Color(0.35, 0.6, 1.3), jet: new THREE.Color(0.85, 0.95, 1.4), jetGas: new THREE.Color(0.93, 0.96, 1),
     glass: C('#d6ecf5'), tlR: new THREE.Color(1, 0.1, 0.08), tlY: new THREE.Color(1, 0.7, 0.05), tlG: new THREE.Color(0.1, 1, 0.4), white: new THREE.Color(1, 1, 1)
   });
 }
@@ -1364,7 +1369,7 @@ const BODIES = {
   },
   // all-electric: a long, low wedge with no grille, a glass canopy, slim light bars and a short tail; silent and savage off the line
   roadster: {
-    name: 'Tesla Roadster', blurb: 'All-electric hypercar from the Testing Zone. Near-silent, a launch like a catapult and the highest top speed of anything on wheels.', L: 4.35, W: 1.98, wb: 2.65, wr: 0.36, track: 1.7, base: 0.27, unlock: 'roadster', electric: true,
+    name: 'Tesla Roadster', blurb: 'All-electric hypercar from the Testing Zone, with a SpaceX thruster pack: hold J to fly on compressed air. Near-silent, a launch like a catapult and the highest top speed of anything on wheels.', L: 4.35, W: 1.98, wb: 2.65, wr: 0.36, track: 1.7, base: 0.27, unlock: 'roadster', electric: true, thrusters: true,
     top: [[-2.17, 0.31], [-2.2, 0.66], [-2.05, 0.82], [-1.5, 0.86], [-0.55, 0.84], [0.55, 0.76], [1.5, 0.62], [2.06, 0.5], [2.17, 0.4], [2.15, 0.3]],
     cabin: [[-1.6, 0.85], [-0.9, 1.19], [0.05, 1.22], [1.0, 0.75]], hl: [2.07, 0.52], tl: [-2.19, 0.74], deck: [-1.95, 0.85],
     stats: { top: 86, acc: 22, grip: 1.2, mass: 1700, hp: 110 }
@@ -3865,7 +3870,7 @@ class Vehicle {
     this.cr = this.halfW * 1.0; this.co = [d.front - this.cr, (d.front + d.rear) / 2, d.rear + this.cr];
     this.x = 0; this.z = 0; this.y = 0; this.vx = 0; this.vz = 0; this.vy = 0; this.h = 0; this.av = 0; this.steer = 0; this.onGround = true; this.pitch = 0; this.lean = 0; this.vf = 0;
     this.roll = 0; this.rollV = 0; this.pit = 0; this.pitV = 0; this.tumble = false; this.flipped = false;
-    this.health = this.st.hp; this.maxHp = this.st.hp; this.wrecked = false; this.nitro = 1; this.boosting = false; this.slip = 0;
+    this.health = this.st.hp; this.maxHp = this.st.hp; this.wrecked = false; this.nitro = 1; this.air = 1; this.boosting = false; this.slip = 0;
     this.wdmg = [0, 0, 0, 0]; this.wlost = [false, false, false, false]; this.lostCount = 0; this.drag = 0; this.pull = 0;
     this.engineDmg = 0; this.frontDmg = 0; this.rearDmg = 0; this.glassBroken = false; this.headBroken = false; this.tailBroken = false; this.uniq = false;
     this.abandoned = false; this.mission = false; this.own = false; this.ry = 0; this.pvf = 0; this.accF = 0; this.skid = null;
@@ -3893,6 +3898,7 @@ class Vehicle {
     let pt;
     if (upright) { const hf = heightAt(this.x + fx * hb, this.z + fz * hb), hr = heightAt(this.x - fx * hb, this.z - fz * hb); pt = -Math.atan2(hf - hr, this.st.wb); }
     else if (this.tumble || this.flipped) pt = 0;
+    else if (this.jetOn) pt = clamp((this.input.brake - this.input.throttle) * 0.14, -0.2, 0.2);
     else pt = clamp(-Math.atan2(this.vy, Math.max(4, Math.abs(this.vf))) * 0.7, -0.6, 0.6);
     this.pitch = this.loop ? 0 : lerp(this.pitch, pt, dt ? damp(upright ? 14 : 3, dt) : 1);
     // lean with the ground side to side too (banked turns, ramp edges, kerbs)
@@ -3933,6 +3939,11 @@ class Vehicle {
 function stepVehicle(v, dt) {
   if (v.remote) return;
   if (v.loop) { loopStep(v, dt); return; }
+  const TB = BODIES[v.cfg.body];
+  v.jetOn = !!(TB && TB.thrusters) && !v.wrecked && !v.sunk && !!v.input.jet && v.air > 0.01 && !v.tumble && !v.flipped;
+  if (v.onGround && !v.jetOn) v.jetUsed = false;
+  if (v.jetOn && v.onGround) { v.onGround = false; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; v.rollV = 0; v.vy = Math.max(v.vy || 0, 3); v.y += 0.05; }
+  if (v.jetOn) v.jetUsed = true;
   const inp = v.input, st = v.st;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), rx = -fz, rz = fx;
   let vf = v.vx * fx + v.vz * fz, vr = v.vx * rx + v.vz * rz;
@@ -3977,11 +3988,24 @@ function stepVehicle(v, dt) {
     const k = Math.exp(-2.4 * dt); v.vx *= k; v.vz *= k; v.av *= Math.exp(-3 * dt); v.boosting = false;
   } else {
     v.vy -= GRAV * dt; v.av *= Math.exp(-0.6 * dt); if (!v.tumble) v.av += v.steer * 0.9 * dt; v.boosting = false;
+    if (v.jetOn) {   // SpaceX thruster pack: cold-gas jets lift you, W / S thrust forward and back, A / D turn
+      v.vy += (34 + (v.vy < 0 ? 12 : 0)) * dt; v.vy = Math.min(v.vy, 14);
+      let hf = v.vx * fx + v.vz * fz, hr = v.vx * rx + v.vz * rz;
+      hf = clamp(hf + (inp.throttle * 18 - inp.brake * 16) * dt, -15, 65); hr *= Math.exp(-2.5 * dt);
+      v.vx = fx * hf + rx * hr; v.vz = fz * hf + rz * hr; vf = hf;
+      v.av += (inp.steer * 1.5 - v.av) * Math.min(1, dt * 4);
+    }
   }
   v.vf = vf;
   v.h += v.av * dt; v.x += v.vx * dt; v.z += v.vz * dt;
+  if (TB && TB.thrusters && !v.onGround && W.bounds) {   // the edge walls are low, so a flying Roadster gets an invisible ceiling-high fence
+    const B = W.bounds, m = 4;
+    if (v.x < B.x0 + m) { v.x = B.x0 + m; v.vx = Math.max(0, v.vx); } else if (v.x > B.x1 - m) { v.x = B.x1 - m; v.vx = Math.min(0, v.vx); }
+    if (v.z < B.z0 + m) { v.z = B.z0 + m; v.vz = Math.max(0, v.vz); } else if (v.z > B.z1 - m) { v.z = B.z1 - m; v.vz = Math.min(0, v.vz); }
+  }
   if (v.boosting) v.nitro = Math.max(0, v.nitro - dt * 0.3); else v.nitro = Math.min(1, v.nitro + dt * 0.06);
-  const gh = heightAt(v.x, v.z);
+  if (TB && TB.thrusters) { if (v.jetOn) v.air = Math.max(0, v.air - dt * 0.2); else if (v.onGround) v.air = Math.min(1, v.air + dt * 0.14); }   // about 5 s of thrust; the compressor refills it on the ground
+  const gh = TB && TB.thrusters ? Math.max(heightAt(v.x, v.z), roofAt(v.x, v.z, v.y)) : heightAt(v.x, v.z);   // a flying car can set down on rooftops
   if (v.tumble) {
     v.y += v.vy * dt;
     v.roll = wrapA(v.roll + v.rollV * dt); v.pit = clamp(v.pit + v.pitV * dt, -1.35, 1.35);
@@ -4053,6 +4077,7 @@ function reqOffset(v) {
   return cr * cp * v.hc + sr * v.halfW + sp * (v.front - v.rear) * 0.4 - v.hc;
 }
 function bikeFlipLanded(v, type, n) {
+  if (v.jetUsed) return;   // no flip credit for thruster-assisted flights
   const word = (n === 2 ? 'Double ' : n >= 3 ? 'Triple ' : '') + (type === 'back' ? 'backflip' : 'frontflip');
   if (v === G.player) { feed(word.charAt(0).toUpperCase() + word.slice(1) + '!  +$' + 75 * n, 'green'); addCash(75 * n); SFX.ding(); G.stats.flips = (G.stats.flips || 0) + n; }
   MIS.lastFlip = { type, n, t: GT };
@@ -4420,8 +4445,24 @@ function explode(x, y, z, power, src, self, big, remote) {
   damagePlanesAt(x, y, z, big ? 30 : 7 * power, power, src);
   if (HELI.active && !HELI.down) { const d = Math.hypot(HELI.x - x, HELI.y - y, HELI.z - z), R2 = (big ? 30 : 9 * power); if (d < R2) heliDamage((1 - d / R2) * 260 * power, isPlayerSrc(src)); }
 }
+// the Roadster's thruster plumes: four see-through cones of cold gas under the corners, made on first use
+let JET_GEO = null, JET_MAT = null;
+function jetPlumes(v) {
+  if (!JET_GEO) {
+    JET_GEO = new THREE.ConeGeometry(0.3, 1.8, 12, 6, true); JET_GEO.translate(0, -0.9, 0);   // nozzle at the tip, widening downward
+    const pos = JET_GEO.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) { const b = Math.pow(1 + pos.getY(i) / 1.8, 2.2); col[i * 3] = 0.62 * b; col[i * 3 + 1] = 0.74 * b; col[i * 3 + 2] = 0.9 * b; }   // additive, so fading to black fades it out
+    JET_GEO.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    JET_MAT = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, toneMapped: false });
+  }
+  const g = new THREE.Group(), f = 0.42 * (v.front - v.rear);
+  for (const [z, x] of [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
+  g.visible = false; v.model.root.add(g); return g;
+}
 function vehicleEffects(v, dt) {
   const hp = v.health / v.maxHp, fx = Math.sin(v.h), fz = Math.cos(v.h);
+  if (v.jetOn && !v.jetFX && v.model && v.model.root) v.jetFX = jetPlumes(v);
+  if (v.jetFX) { v.jetFX.visible = !!v.jetOn; if (v.jetOn) for (const c of v.jetFX.children) { const k = 0.85 + Math.random() * 0.3; c.scale.set(k, 0.8 + Math.random() * 0.45, k); } }
   const d2 = (v.x - camera.position.x) ** 2 + (v.z - camera.position.z) ** 2;
   if (d2 > 180 * 180) return;
   if (d2 < 110 * 110 && !v.wrecked) updateSkids(v); else v.skid = null;
@@ -4447,6 +4488,14 @@ function vehicleEffects(v, dt) {
   if (v.onGround && (v.slip > 4.5 || (v.input.throttle > 0.9 && sp < 6 && v.input.hand)) && Math.random() < 0.7) {
     for (const s of [1, -1]) { const rx = v.x - fx * v.st.wb / 2 + fz * s * 0.8, rz = v.z - fz * v.st.wb / 2 - fx * s * 0.8; FX.smoke.emit(rx, v.y + 0.3, rz, rand(-0.5, 0.5), rand(0.4, 1.2), rand(-0.5, 0.5), rand(1, 1.8), rand(0.5, 0.9), COL.smoke, 0.32, -0.3, 1, 1.4, 4); }
     if (v === G.player) G.skid = Math.max(G.skid || 0, clamp((v.slip - 3) / 8, 0, 1));
+  }
+  if (v.jetOn) for (const [a, s] of [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
+    const f = a * (v.front - v.rear), ex = v.x + fx * f + fz * s * 0.7, ez = v.z + fz * f - fx * s * 0.7;
+    if (Math.random() < 0.6) FX.smoke.emit(ex, v.y - 1.2, ez, rand(-0.8, 0.8), rand(-7, -4), rand(-0.8, 0.8), rand(0.25, 0.4), rand(0.4, 0.6), COL.jetGas, 0.45, 0, 3, 2.6, 4);
+  }
+  if (v.jetOn && Math.random() < 0.5) {   // close to the ground the blast kicks up a ring of dust
+    const gy = heightAt(v.x, v.z), agl = v.y - gy;
+    if (agl < 6) { const a = rand(0, TAU), sp = rand(5, 9) * (1 - agl / 7); FX.smoke.emit(v.x + Math.cos(a) * 1.5, gy + 0.2, v.z + Math.sin(a) * 1.5, Math.cos(a) * sp, rand(0.3, 1), Math.sin(a) * sp, rand(0.6, 1.1), rand(0.6, 1), COL.dust, 0.4, -0.2, 1.4, 1.6, 4); }
   }
   if (v.boosting) for (const s of [1, -1]) { const ex = v.x + fx * (v.rear - 0.1) + fz * s * 0.4, ez = v.z + fz * (v.rear - 0.1) - fx * s * 0.4; FX.fire.emit(ex, v.y + 0.42, ez, -fx * 8 + rand(-0.5, 0.5), rand(-0.2, 0.4), -fz * 8 + rand(-0.5, 0.5), rand(0.08, 0.18), rand(0.25, 0.45), COL.nitro, 1, 0, 3, -0.5, 0); }
 }
@@ -5403,6 +5452,7 @@ function enterVehicle(v) {
   heroHide();
   G.player = v; v.model.root.add(headSpot, headSpot.target);
   CAM.h = v.h; resetCamera(); SFX.door(); HUD.exitHintT = 4;
+  if ((BODIES[v.cfg.body] || {}).thrusters && !HUD.jetTip) { HUD.jetTip = true; feed(APP.touch ? 'Thruster pack fitted: hold JET to fly. It runs on the Air tank, which refills on the ground' : 'Thruster pack fitted: hold J to fly, W / S to thrust, A / D to turn. The Air tank refills on the ground', 'green'); }
 }
 // car lock: L locks the car you're in or the last one you left. Thieves can't take a locked car and it's never cleared away.
 function toggleLock() {
@@ -6457,7 +6507,7 @@ const SFX = {
       n.connect(g); g.connect(this.master); s.start(0, a + Math.random() * len); this.L[key] = { s, g, f, trim: SND_TRIM[name] || 1 };
     };
     mk('eng', 'eng', 2000); mk('engDiesel', 'engDiesel', 2000); mk('engBike', 'engBike', 2500); mk('prop', 'prop', 3000); mk('jet', 'jet', 6000);
-    mk('ev', 'ev', 3000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
+    mk('ev', 'ev', 3000); mk('thr', 'jet', 7000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
   },
   setVolume(v) { if (this.master) this.master.gain.value = v / 100 * 0.9; },
   ok(name, gap) { const t = performance.now(); if (this.last[name] && t - this.last[name] < gap) return false; this.last[name] = t; return !!this.ctx; },
@@ -6560,6 +6610,7 @@ const SFX = {
     this.loopTo('siren', sir * sir * 0.5, 0, 0, 0.12);
     const hv = live && F && HELI.active ? clamp(1 - Math.hypot(HELI.x - F.x, HELI.z - F.z) / 200, 0, 1) : 0;
     this.loopTo('heliCop', hv * hv * 0.9, 0, 900 + hv * 2500, 0.2);
+    this.loopTo('thr', live && P && P.jetOn ? 0.5 : 0, 1.55 + (P && P.jetOn ? P.input.throttle * 0.15 : 0), 7500, 0.05);   // thruster hiss
     if (!live && this.horn) this.hornSet(false);
   }
 };
@@ -6811,6 +6862,7 @@ function feed(text, kind) {
   setTimeout(() => { d.style.opacity = '0'; setTimeout(() => d.remove(), 600); }, 3600);
 }
 function onPlayerLand(v) {
+  if (v.jetUsed) return;   // a thruster flight isn't a stunt jump
   styleLand(v);
   if (v.airT < 0.7) return;
   const dist = Math.hypot(v.x - v.airX, v.z - v.airZ);
@@ -6832,6 +6884,11 @@ function updateHUD(dt) {
   hudH('spdrow', foot); hudH('n2oLabel', foot); hudH('n2oBar', foot);
   hudT('hpLabel', PL ? 'Hull' : foot ? 'Health' : 'Body');
   hudT('n2oLabel', PL ? 'Throttle' : 'Nitro');
+  { // the Roadster's thruster pack runs on its own compressed-air tank, so it gets its own gauge
+    const thr = !PL && !foot && !!P && !!(BODIES[P.cfg.body] || {}).thrusters;
+    hudH('airLabel', !thr); hudH('airRow', !thr); if (APP.touch) hudH('jetBtn', !thr);
+    if (thr) { hudS('airFill', 'width', (P.air * 100).toFixed(1) + '%'); const r = el('airRow'), lo = P.air < 0.2, on = !!P.jetOn; if (HUD.airLo !== lo) { HUD.airLo = lo; r.classList.toggle('low', lo); } if (HUD.airOn !== on) { HUD.airOn = on; r.classList.toggle('on', on); } }
+  }
   if (HUD.altOn !== !!PL) { HUD.altOn = !!PL; hudH('altrow', !PL); $('#ui').classList.toggle('flying', !!PL); }
   { const bomber = !!PL && (PL.type === 'stinger' || PL.type === 'hornet'), bt = !bomber ? '' : PL.type === 'hornet' ? `ROCKETS ${PL.rocketsLeft === undefined ? PL.def.rockets : PL.rocketsLeft}` : `BOMBS ${PL.bombs === undefined ? BOMBS.max : PL.bombs}`; if (HUD.bombs !== bt + (PL ? PL.type : '')) { HUD.bombs = bt + (PL ? PL.type : ''); hudT('bombsV', bt); const wb = $('#touch [data-k=wpn]'); if (wb) { wb.textContent = bomber ? 'BOMB' : 'GUN'; wb.classList.toggle('bomb', bomber); } const hb = $('#touch [data-k=horn]'); if (hb) hb.textContent = PL && (PL.type === 'stinger' || PL.type === 'heli') ? 'FIRE' : 'HORN'; } }
   let hp;
@@ -7027,8 +7084,9 @@ function readInput(P) {
   }
   ARMS.trigger = !G.down && !!P && ARMS.cur > 0 && gunsOn() && !!KEYS.KeyQ;
   const park = G.down || !P ? 1 : 0;
-  if (park) { thr = 0; brk = 0; steer = 0; hand = false; nitro = false; horn = false; }
-  if (P) Object.assign(P.input, { throttle: thr, brake: brk, steer, hand: hand ? 1 : 0, nitro: nitro ? 1 : 0, park });
+  let jet = !!(KEYS.KeyJ || TOUCH.jet);
+  if (park) { thr = 0; brk = 0; steer = 0; hand = false; nitro = false; horn = false; jet = false; }
+  if (P) Object.assign(P.input, { throttle: thr, brake: brk, steer, hand: hand ? 1 : 0, nitro: nitro ? 1 : 0, park, jet: jet ? 1 : 0 });
   if (horn !== hornOn) { hornOn = horn; SFX.hornSet(horn); if (horn && P) for (const p of PED.list) if (p.active && !p.rag && (p.x - P.x) ** 2 + (p.z - P.z) ** 2 < 400 && Math.random() < 0.5) panic(p, P.x, P.z, 3); }
   if (nitro && P && P.boosting && !G.nitroWas) SFX.whoosh(); G.nitroWas = P && P.boosting;
 }
@@ -8756,7 +8814,7 @@ function netState() {
   if (G.player) {
     const v = G.player; if (!v.netId) v.netId = ++NET.carId;
     if (NET.cfgFor !== v) { NET.cfgFor = v; NET.cfg = netPackCfg(v.cfg); NET.cfgDirty = true; }
-    return Object.assign(base, { md: G.down ? 'd' : 'c', x: nr2(v.x), y: nr2(v.y), z: nr2(v.z), h: nr2(v.h), vx: nr1(v.vx), vy: nr1(v.vy || 0), vz: nr1(v.vz), r: nr2(v.roll || 0), pt: nr2(v.pit || 0), air: v.onGround ? 0 : 1, tb: v.tumble ? 1 : 0, fl: v.flipped ? 1 : 0, hp: Math.round(clamp(v.health / v.maxHp, 0, 1) * 100), wr: v.wrecked ? 1 : 0, ci: v.netId, pol: v.police ? 1 : 0, nb: v.boosting ? 1 : 0, sr: nr2(v.input.steer || 0), ln: v.bike ? nr2(v.bikeLean) : undefined, wh: v.bike && v.wh > 0.02 ? nr2(v.wh) : undefined });
+    return Object.assign(base, { md: G.down ? 'd' : 'c', x: nr2(v.x), y: nr2(v.y), z: nr2(v.z), h: nr2(v.h), vx: nr1(v.vx), vy: nr1(v.vy || 0), vz: nr1(v.vz), r: nr2(v.roll || 0), pt: nr2(v.pit || 0), air: v.onGround ? 0 : 1, tb: v.tumble ? 1 : 0, fl: v.flipped ? 1 : 0, hp: Math.round(clamp(v.health / v.maxHp, 0, 1) * 100), wr: v.wrecked ? 1 : 0, ci: v.netId, pol: v.police ? 1 : 0, nb: v.boosting ? 1 : 0, jt: v.jetOn ? 1 : undefined, sr: nr2(v.input.steer || 0), ln: v.bike ? nr2(v.bikeLean) : undefined, wh: v.bike && v.wh > 0.02 ? nr2(v.wh) : undefined });
   }
   return Object.assign(base, { md: 'x' });
 }
@@ -8841,7 +8899,7 @@ function netDriveAvatar(N, s, dt) {
     const v = a;
     v.x = N.x; v.y = N.y; v.z = N.z; v.h = N.h; v.vx = nnum(s.vx); v.vz = nnum(s.vz); v.vy = nnum(s.vy);
     v.vf = v.vx * Math.sin(v.h) + v.vz * Math.cos(v.h); v.av = 0;
-    v.roll = nnum(s.r); v.pit = nnum(s.pt); v.onGround = !s.air; v.netLean = clamp(nnum(s.ln), -0.9, 0.9); v.netWh = clamp(nnum(s.wh), 0, 0.5); v.tumble = !!s.tb; v.flipped = !!s.fl; v.boosting = !!s.nb; v.input.steer = clamp(nnum(s.sr), -1, 1);
+    v.roll = nnum(s.r); v.pit = nnum(s.pt); v.onGround = !s.air; v.netLean = clamp(nnum(s.ln), -0.9, 0.9); v.netWh = clamp(nnum(s.wh), 0, 0.5); v.tumble = !!s.tb; v.flipped = !!s.fl; v.boosting = !!s.nb; v.jetOn = !!s.jt; v.input.steer = clamp(nnum(s.sr), -1, 1);
     v.health = clamp(nnum(s.hp, 100), 0, 100) / 100 * v.maxHp;
     if (s.wr && !v.wrecked) { v.wrecked = true; v.burnT = 22; burnModel(v.model); }
     v.obj.visible = Math.hypot(v.x - camera.position.x, v.z - camera.position.z) < QUALITY[settings.quality].draw;

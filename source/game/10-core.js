@@ -423,7 +423,7 @@ function initColors() {
     smoke: C('#8c8c8c'), dark: C('#2a2826'), fire: new THREE.Color(1.0, 0.45, 0.12), fireHot: new THREE.Color(1.2, 0.85, 0.4),
     spark: new THREE.Color(1.3, 0.9, 0.4), blood: C('#8a0710'), blood2: C('#5c0309'), water: C('#d4ecff'), dust: C('#b9a684'),
     head: new THREE.Color(1.0, 0.95, 0.8), tail: new THREE.Color(1.0, 0.08, 0.06), sodium: new THREE.Color(1.0, 0.62, 0.22),
-    sirenR: new THREE.Color(1.0, 0.1, 0.12), sirenB: new THREE.Color(0.15, 0.3, 1.0), nitro: new THREE.Color(0.35, 0.6, 1.3),
+    sirenR: new THREE.Color(1.0, 0.1, 0.12), sirenB: new THREE.Color(0.15, 0.3, 1.0), nitro: new THREE.Color(0.35, 0.6, 1.3), jet: new THREE.Color(0.85, 0.95, 1.4), jetGas: new THREE.Color(0.93, 0.96, 1),
     glass: C('#d6ecf5'), tlR: new THREE.Color(1, 0.1, 0.08), tlY: new THREE.Color(1, 0.7, 0.05), tlG: new THREE.Color(0.1, 1, 0.4), white: new THREE.Color(1, 1, 1)
   });
 }
