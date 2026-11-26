@@ -455,6 +455,7 @@ function updateHUD(dt) {
   if (HUD.exitHintT > 0) HUD.exitHintT -= dt;
   if (SHOP.prompt && !G.down && (G.onFoot || SHOP.carPrompt)) pr = SHOP.prompt;
   if (G.onFoot && !G.down && HERO.carrots > 0 && !SHOP.inside) { const cv = carrotTarget(); if (cv) pr = APP.touch ? 'Tap CAR to shove a carrot up the exhaust' : `${key('G')}Shove a carrot up the exhaust <small>${HERO.carrots} left</small>`; }
+  if (G.onFoot && !G.down && !SHOP.inside && HERO.p && !HERO.p.rag) { if (PUG.held) pr = APP.touch ? 'Tap HORN to throw the pug bomb · CAR to put it down' : `${key('Q')}or click: throw the pug bomb · ${key('F')}put it down`; else if (!HERO.enter && pugNear()) pr = APP.touch ? 'Tap CAR to pick up the pug' : `${key('F')}Pick up the pug`; }
   if (G.onFoot && !G.down && canDeploy() && (!HERO.fly || HERO.vy < -6)) { const low = chuteAlt() < 60 && (!HERO.p.rag || HERO.p.rag.pos[25] < HERO.p.rag.prev[25]); pr = (low ? '⚠ ' : '') + (APP.touch ? 'Tap CAR to open your parachute' : `${key('Space')}${key('F')}Open your parachute`); }
   if (G.plane && !G.down) {
     const PL = G.plane;
@@ -577,6 +578,7 @@ function readInput(P) {
   let thr = (KEYS.KeyW || KEYS.ArrowUp || TOUCH.gas) ? 1 : 0, brk = (KEYS.KeyS || KEYS.ArrowDown || TOUCH.brake) ? 1 : 0;
   let steer = ((KEYS.KeyA || KEYS.ArrowLeft || TOUCH.left) ? 1 : 0) - ((KEYS.KeyD || KEYS.ArrowRight || TOUCH.right) ? 1 : 0);
   let hand = !!(KEYS.Space || TOUCH.hand), nitro = !!(KEYS.ShiftLeft || KEYS.ShiftRight || TOUCH.nitro), horn = !!(KEYS.KeyH || TOUCH.horn), punch = !!(KEYS.KeyQ || HERO.click);
+  const pugClick = HERO.click || ARMS.mouse.down;
   HERO.click = false;
   if (APP.touch) {
     // Touch: RUN / N2O drive you forward on their own, no need to hold WALK / GAS too
@@ -608,7 +610,8 @@ function readInput(P) {
     I.mz = off ? 0 : padY ? -padY : (thr > 0.3 ? 1 : 0) - (brk > 0.3 ? 1 : 0); I.mx = off ? 0 : padX ? padX : -Math.sign(steer);   // camera-relative: forward / right
     I.jump = !off && hand && !HERO.jumpHeld; HERO.jumpHeld = hand;
     const pu = punch || horn;
-    if (ARMS.cur && gunsOn()) { ARMS.trigger = !off && pu; I.punch = false; HERO.punchHeld = pu; }
+    if (PUG.held) { const t = pu || ARMS.mouse.down; ARMS.trigger = false; I.punch = false; if (!off && t && !HERO.punchHeld) throwPug(pugClick); HERO.punchHeld = t; }   // holding a pug bomb: the fire button throws it
+    else if (ARMS.cur && gunsOn()) { ARMS.trigger = !off && pu; I.punch = false; HERO.punchHeld = pu; }
     else { ARMS.trigger = false; I.punch = !off && pu && !HERO.punchHeld; HERO.punchHeld = pu; }
     if (hornOn) { hornOn = false; SFX.hornSet(false); }
     return;
@@ -796,7 +799,7 @@ const RIM_COLORS = ['#c9ccd2', '#2a2c30', '#d4af37', '#b03030', '#2f6fd9', '#f2f
 const NEONS = ['#ff2e88', '#22e0ff', '#3dff8b', '#b44dff', '#ffd02e', '#ff3b2e'];
 let garageTab = 'body';
 const TABS = [['body', 'Body'], ['paint', 'Paint'], ['wheels', 'Wheels'], ['style', 'Style'], ['tuning', 'Tuning']];
-const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job', roadster: 'pass the Show Off trial at the Testing Zone' };
+const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job', roadster: 'pass the Show Off trial at the Testing Zone in a car', voltbike: 'pass Show Off on Two Wheels at the Testing Zone on a motorbike' };
 function setCar(k, v) { if (k === 'body' && bodyLocked(v)) { feed(`To unlock the ${BODIES[v].name}, ${UNLOCK_HOW[BODIES[v].unlock] || 'finish its job'}`, 'red'); return; } carCfg[k] = v; saveCar(); garageSetCar(carCfg); renderGarageUI(); }
 function renderGarageUI() {
   const B = BODIES[carCfg.body];

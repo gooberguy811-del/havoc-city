@@ -1,0 +1,51 @@
+// pug bomb in multiplayer: one blast message (no flood of collapse messages), and the other player's city comes down the same way
+const { chromium } = require('playwright');
+const fs = require('fs');
+const SP = process.argv[2], MAP = 'neon';
+(async () => {
+  const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
+  const mock = fs.readFileSync(SP + '/test/mockroom-strict.js', 'utf8');
+  const errs = [];
+  const mk = async tag => {
+    const ctx = await browser.newContext({ viewport: { width: 800, height: 450 } }); const page = await ctx.newPage();
+    page.on('pageerror', e => errs.push(tag + ' pageerror: ' + e.message + ' ' + (e.stack || '').split('\n').slice(0, 3).join(' | ')));
+    await page.route('**/three.min.js', r => r.fulfill({ path: SP + '/vendor/package/build/three.min.js', contentType: 'application/javascript' }));
+    await page.route('**/fonts.googleapis.com/**', r => r.fulfill({ body: '', contentType: 'text/css' }));
+    await page.route('**/fonts.gstatic.com/**', r => r.abort());
+    await page.addInitScript(mock);
+    return page;
+  };
+  const A = await mk('A'), B = await mk('B');
+  const relay = (from, to) => from.exposeFunction('__netOut', msg => { to.evaluate(m => window.__netIn && window.__netIn(m), msg).catch(() => { }); });
+  await relay(A, B); await relay(B, A);
+  const start = async P => { await P.goto('file://' + SP + '/test/index.html'); await P.waitForTimeout(800); await P.evaluate(m => Object.assign(window.__havoc.settings, { map: m, trafficDensity: 30, pedDensity: 30, quality: 'low', time: 'day', police: 'off' }), MAP); await P.click(`.mapcard[data-map="${MAP}"]`); await P.click('#playBtn'); };
+  const waitFor = async (P, fn, ms) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if (await P.evaluate(fn)) return true; await P.waitForTimeout(250); } return false; };
+  await start(A); await A.waitForTimeout(1500); await start(B);
+  console.log('connected:', await waitFor(B, () => window.__havoc.NET.players.size > 0, 20000));
+  await A.evaluate(() => { const H = window.__havoc; if (!H.G.onFoot) H.toggleVehicle(); });
+  await A.waitForTimeout(1500);
+  await A.evaluate(() => {
+    const H = window.__havoc, W = H.getW(), p = H.HERO.p;
+    const score = n => H.STR.list.filter(s => !s.state && Math.hypot(Math.max(s.x0 - n.x, 0, n.x - s.x1), Math.max(s.z0 - n.z, 0, n.z - s.z1)) < 60).length;
+    const n = W.nodes.filter(n => n.edges.length >= 3).sort((a, b) => score(b) - score(a))[0];
+    const e = W.edges[n.edges[0].id !== undefined ? n.edges[0].id : n.edges[0]], o = W.nodes[e.a === n.id ? e.b : e.a];
+    p.x = n.x; p.z = n.z; p.y = H.heightAt(p.x, p.z); window.__look = Math.atan2(o.x - n.x, o.z - n.z);
+  });
+  await A.waitForTimeout(1200);
+  await A.evaluate(() => { const H = window.__havoc, p = H.HERO.p; H.pugRain(4, p); for (const r of H.PUG.rain) { r.x = p.x + 0.6; r.z = p.z; r.y = p.y + 1; } });
+  await A.waitForTimeout(2000);
+  console.log('A picks up:', await A.evaluate(() => { const H = window.__havoc; H.toggleVehicle(); return !!H.PUG.held; }));
+  await A.evaluate(() => { const H = window.__havoc; H.CAM.h = window.__look; H.HERO.p.h = window.__look; });
+  await A.waitForTimeout(300);
+  await A.evaluate(() => window.__havoc.throwPug(false));
+  await waitFor(A, () => !!window.__havoc.PUG.lastBlast && window.__havoc.BOOM.queue.length === 0, 30000);
+  const a = await A.evaluate(() => { const H = window.__havoc; return { fallen: H.STR.list.map((s, i) => s.state ? i : -1).filter(i => i >= 0), fx: H.NET.fx.map(f => f.e[1] + (f.e[1] === 'e' ? ':' + f.e[7] : '')).join(' ') }; });
+  console.log('A fallen', a.fallen.length, '| A fx queue:', a.fx);
+  await waitFor(B, n => window.__havoc.STR.list.filter(s => s.state).length >= 1, 15000);
+  await B.waitForTimeout(4000);
+  const b = await B.evaluate(() => window.__havoc.STR.list.map((s, i) => s.state ? i : -1).filter(i => i >= 0));
+  const same = a.fallen.length === b.length && a.fallen.every(i => b.includes(i));
+  console.log('B fallen', b.length, 'same buildings:', same);
+  console.log('errors', errs.length, errs.slice(0, 4).join('\n'));
+  await browser.close();
+})();

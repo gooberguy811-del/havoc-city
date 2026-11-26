@@ -122,7 +122,7 @@ function collapseStruct(s, bx, bz, quiet) {
   for (const m of s.hide) if (m) m.visible = false;
   STR.active.push(s);
   if (quiet) { s.t = s.dur * 0.995; if (s.station && s.kind === 'shop') s.station.wrecked = true; return; }   // it fell before we got here: skip straight to rubble
-  if (!s.netRemote) netFx(['c', STR.list.indexOf(s)]);
+  if (!s.netRemote && !BOOM.quietNet) netFx(['c', STR.list.indexOf(s)]);
   const camD = Math.hypot(cx - camera.position.x, cz - camera.position.z);
   BOOM.sounds.push({ t: GT + camD / 340, v: clamp(1.1 - camD / 400, 0.1, 1), big: H > 20, far: camD, collapse: true });
   G.shake = Math.max(G.shake, clamp(1 - camD / (60 + H * 2), 0, 1) * 1.4);

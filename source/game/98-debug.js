@@ -13,3 +13,4 @@ Object.assign(window.__havoc, { renderer, scene, renderScene, POST, gameUpdate }
 Object.assign(window.__havoc, { DYN, dynRes, updateTreeTiles });
 Object.assign(window.__havoc, { STY, TZ, addStyle, loopPoint, shapeLocal });
 Object.assign(window.__havoc, { stepVehicle, collideStatic });
+Object.assign(window.__havoc, { pugRain, pugToggle, throwPug, pugNear, pugBlast, PUG_SITES });

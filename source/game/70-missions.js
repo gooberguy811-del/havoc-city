@@ -375,13 +375,26 @@ function updateMissionHUD() {
 
 // ---------- Testing Zone: Show Off (unlocks the Tesla Roadster) ----------
 MISSIONS.test = [{ id: 'showoff', name: 'Show Off', reward: 5000, time: 240, unlock: 'roadster', giver: [-30, 22],
-  blurb: 'The engineers want proof before they hand over the Roadster. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Loops, hoops, drifts, flips, big air and fast quarter miles all score, and chaining tricks builds a multiplier.',
-  steps: [{ t: 'style', pts: 15000, air: 3, text: 'Show off' }] }];
+  blurb: 'The engineers want proof before they hand over the Roadster, and they want it in a car: motorbike tricks don\'t count. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Loops, hoops, drifts, big air and fast quarter miles all score, and chaining tricks builds a multiplier.',
+  steps: [{ t: 'style', pts: 15000, air: 3, need: 'car', text: 'Show off in a car' }] },
+{ id: 'showoff2', name: 'Show Off on Two Wheels', reward: 5000, time: 240, unlock: 'voltbike', giver: [-30, -52],
+  blurb: 'The bike team wants the same proof before they hand over the Volt RR, but on a motorbike: car tricks don\'t count. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Borrow one of the bikes parked by the marker if you came in a car. Flips score big on a bike.',
+  steps: [{ t: 'style', pts: 15000, air: 3, need: 'bike', text: 'Show off on a motorbike' }] }];
+// does what you're driving count for this trial? (Show Off wants a car, its two-wheeled version a motorbike)
+function styleVehOK(need) {
+  const v = G.player; if (!v || G.onFoot || G.plane || G.down) return false;
+  return need === 'bike' ? !!v.bike : need === 'car' ? !v.bike && !v.tank : true;
+}
 STEP.style = {
-  start(st, s) { s.p0 = STY.pts; STY.runAir = 0; styleCrash(); },
+  start(st, s) { s.got = 0; s.air = 0; s.last = STY.pts; STY.runAir = 0; styleCrash(); },
   update(st, s) {
-    const got = STY.pts - s.p0;
-    setObj(`Style ${got.toLocaleString()} / ${st.pts.toLocaleString()}  ·  best air ${STY.runAir.toFixed(1)} / ${st.air.toFixed(1)} s`);
-    if (got >= st.pts || STY.runAir >= st.air) nextStep();
+    // only tricks done in the right kind of vehicle count: points are banked as they come in, air time when you land
+    const ok = styleVehOK(st.need), d = STY.pts - s.last; s.last = STY.pts;
+    if (ok) { s.got += Math.max(0, d); s.air = Math.max(s.air, STY.runAir); }
+    STY.runAir = 0;
+    const prog = `Style ${s.got.toLocaleString()} / ${st.pts.toLocaleString()}  ·  best air ${s.air.toFixed(1)} / ${st.air.toFixed(1)} s`;
+    const v = G.player, wrong = st.need && v && !G.onFoot && !ok;
+    setObj(wrong ? (st.need === 'bike' ? 'Car tricks don\'t count: get on a motorbike (bikes are parked by the marker)' : 'Bike tricks don\'t count: get in a car (one is parked by the marker)') + `<br><small>${prog}</small>` : prog);
+    if (s.got >= st.pts || s.air >= st.air) nextStep();
   }
 };

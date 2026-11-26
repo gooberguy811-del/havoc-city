@@ -52,6 +52,11 @@ const BODIES = {
     name: 'Flip King', blurb: 'Freestyle motocross bike from the Flip It job. Spins faster in the air and lands almost anything.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.35, track: 0, base: 0.3, bike: true, style: 'dirt', accent: '#ff2e88', unlock: 'flip', air: 1.7, tough: 1.3, land: 2.6,
     stats: { top: 58, acc: 19.5, grip: 1.15, mass: 180, hp: 75 }
   },
+  // the Roadster's two-wheeled sibling: an electric superbike with the same SpaceX thruster pack
+  voltbike: {
+    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, air: 1.3, tough: 1.15, land: 2.2,
+    stats: { top: 80, acc: 24, grip: 1.2, mass: 230, hp: 70 }
+  },
   phantom: {
     name: 'Phantom X', blurb: 'Armoured hypercar from the airport heist. The fastest, toughest thing on four wheels.', L: 4.7, W: 2.05, wb: 2.8, wr: 0.36, track: 1.74, base: 0.27, unlock: 'heist',
     top: [[-2.35, 0.3], [-2.38, 0.72], [-2.2, 0.84], [-1.1, 0.88], [0.2, 0.75], [1.4, 0.56], [2.32, 0.4], [2.35, 0.28]],

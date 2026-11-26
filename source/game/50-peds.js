@@ -381,9 +381,11 @@ function pedsExplosion(x, y, z, power, src) {
     const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz, Math.max(0, Math.abs(p.y + 0.9 - y) - 1.2));   // height counts: a blast in the street can't reach a parachutist
     if (p.rag) { const P = p.rag.pos; const ddx = P[24] - x, ddz = P[26] - z, dd = Math.hypot(ddx, ddz, Math.max(0, Math.abs(P[25] - y) - 1.2)); if (dd < 10 * power) { p.rag.asleep = false; p.rag.still = 0; const f = (1 - dd / (10 * power)) * 14 * power; for (let i = 0; i < p.rag.n; i++) { p.rag.prev[i * 3] -= ddx / (dd || 1) * f * RSTEP; p.rag.prev[i * 3 + 1] -= f * 0.8 * RSTEP; p.rag.prev[i * 3 + 2] -= ddz / (dd || 1) * f * RSTEP; } } continue; }
     if (d < 11 * power) {
-      const f = (1 - d / (11 * power)) * 16 * power, nx = dx / (d || 1), nz = dz / (d || 1);
+      let f = (1 - d / (11 * power)) * 16 * power; const nx = dx / (d || 1), nz = dz / (d || 1);
+      const spared = p.isHero && BOOM.pug && d > 14;   // a pug bomb knocks you flat from a distance, it only kills up close
+      if (spared) f = Math.min(f, 9);
       toRagdoll(p, nx * f, nz * f, f, null);
-      if (p.isHero) { HERO.hurtT = 0; heroDamage(f * 7, 'blast'); continue; }
+      if (p.isHero) { HERO.hurtT = 0; heroDamage(spared ? Math.min(f * 7, 25) : f * 7, 'blast'); continue; }
       if (d < 7 * power) {
         killPed(p, isPlayerSrc(src));
         if (settings.gore !== 'off') { bloodBurst(p.x, p.y + 1, p.z, nx * f, nz * f, 16, 1.2); if (settings.gore === 'high' && d < 4) { detach(p, pick(['armL', 'armR', 'legL', 'legR'])); if (Math.random() < 0.5) detach(p, pick(['armL', 'legR'])); } }

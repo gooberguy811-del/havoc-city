@@ -196,7 +196,8 @@ function stepVehicle(v, dt) {
   } else {
     v.y += v.vy * dt; v.airT += dt;
     // on a motorbike you control the spin in the air: S pulls a backflip, W pushes a frontflip
-    const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4;
+    const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4 && !v.jetOn;
+    if (v.jetOn && v.bike) { v.pitV *= Math.exp(-6 * dt); v.pit = wrapA(v.pit) * Math.exp(-4 * dt); v.flipAcc = 0; }   // thrusters hold a bike level
     if (flipper) {
       const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ip = (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
       v.pitV = clamp(v.pitV + ip * 9 * k * dt, -6.5 * k, 6.5 * k);
@@ -574,9 +575,13 @@ function sparks(x, y, z, n) {
 }
 function explode(x, y, z, power, src, self, big, remote) {
   schoolAlarm(x, z);
-  if (!remote && (isPlayerSrc(src) || (self && self === G.player))) netFx(['e', nr2(x), nr2(y), nr2(z), nr2(power), big ? 1 : 0]);
+  if (!remote && (isPlayerSrc(src) || (self && self === G.player))) netFx(['e', nr2(x), nr2(y), nr2(z), nr2(power), big ? 1 : 0, BOOM.pug ? 1 : 0]);
   { const PP = PF(); if (PP && self !== G.player && Math.hypot(PP.x - x, PP.z - z) < 16) crashCam(16, x, z); }
   boomFX(x, y, z, power, big);
+  if (BOOM.pug) {   // a pug bomb: a chain of blasts rolling out around the main one
+    G.shake = Math.max(G.shake, 1.6);
+    for (let k = 0; k < 6; k++) { const a = rand(0, TAU), rr = rand(7, 24), bx = x + Math.cos(a) * rr, bz = z + Math.sin(a) * rr; boomLater(rand(0.12, 0.8), () => boomFX(bx, heightAt(bx, bz) + 0.6, bz, rand(1.8, 3), false)); }
+  }
   const R = big ? 42 : 9 * power;
   for (const v of VEH.list) {
     if (v === self || v.remote) continue;
@@ -596,7 +601,7 @@ function explode(x, y, z, power, src, self, big, remote) {
     if (p.type === 'pump') { if (remote) { if (d < 2.5) p.st = 3; } else if (d < 6 * Math.max(1, power * 0.8)) { p.st = 3; boomLater(rand(0.2, 0.5), () => pumpBlast(p, src)); } }
     else if (d < 6 * power) knockProp(p, { vx: (p.x - x) * 2, vz: (p.z - z) * 2, kind: 'x' }, 10);
   }
-  if (!remote) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);
+  if (!remote && !BOOM.pug) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);   // a pug bomb levels everything in reach on its own (pugLevel)
   damagePlanesAt(x, y, z, big ? 30 : 7 * power, power, src);
   if (HELI.active && !HELI.down) { const d = Math.hypot(HELI.x - x, HELI.y - y, HELI.z - z), R2 = (big ? 30 : 9 * power); if (d < R2) heliDamage((1 - d / R2) * 260 * power, isPlayerSrc(src)); }
 }
@@ -610,8 +615,8 @@ function jetPlumes(v) {
     JET_GEO.setAttribute('color', new THREE.BufferAttribute(col, 3));
     JET_MAT = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, toneMapped: false });
   }
-  const g = new THREE.Group(), f = 0.42 * (v.front - v.rear);
-  for (const [z, x] of [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
+  const g = new THREE.Group(), f = (v.bike ? 0.3 : 0.42) * (v.front - v.rear);
+  for (const [z, x] of v.bike ? [[f, 0], [-f, 0]] : [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
   g.visible = false; v.model.root.add(g); return g;
 }
 function vehicleEffects(v, dt) {
@@ -644,7 +649,7 @@ function vehicleEffects(v, dt) {
     for (const s of [1, -1]) { const rx = v.x - fx * v.st.wb / 2 + fz * s * 0.8, rz = v.z - fz * v.st.wb / 2 - fx * s * 0.8; FX.smoke.emit(rx, v.y + 0.3, rz, rand(-0.5, 0.5), rand(0.4, 1.2), rand(-0.5, 0.5), rand(1, 1.8), rand(0.5, 0.9), COL.smoke, 0.32, -0.3, 1, 1.4, 4); }
     if (v === G.player) G.skid = Math.max(G.skid || 0, clamp((v.slip - 3) / 8, 0, 1));
   }
-  if (v.jetOn) for (const [a, s] of [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
+  if (v.jetOn) for (const [a, s] of v.bike ? [[0.3, 0], [-0.3, 0]] : [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
     const f = a * (v.front - v.rear), ex = v.x + fx * f + fz * s * 0.7, ez = v.z + fz * f - fx * s * 0.7;
     if (Math.random() < 0.6) FX.smoke.emit(ex, v.y - 1.2, ez, rand(-0.8, 0.8), rand(-7, -4), rand(-0.8, 0.8), rand(0.25, 0.4), rand(0.4, 0.6), COL.jetGas, 0.45, 0, 3, 2.6, 4);
   }

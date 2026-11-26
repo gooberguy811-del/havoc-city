@@ -456,7 +456,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div id="chat" hidden><div id="chatLog" aria-live="polite"></div><form id="chatForm" hidden><input id="chatIn" maxlength="120" autocomplete="off" enterkeyhint="send" placeholder="Say something to everyone here" aria-label="Chat message"><button type="submit">Send</button></form><div id="chatQuick" hidden></div><button id="chatBtn" type="button">💬 Chat <kbd>T</kbd></button></div>
     <div id="xhair" hidden></div>
     <div id="fps" hidden></div>
-    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>J</kbd> Roadster thrusters · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
+    <div id="help"><kbd>WASD</kbd> move · <kbd>F</kbd> get in/out · <kbd>Q</kbd> or click shoot · <kbd>1</kbd>–<kbd>5</kbd> weapons · <kbd>R</kbd> reload/flip · <kbd>Space</kbd> drift/jump · <kbd>Shift</kbd> nitro/sprint · <kbd>M</kbd> map · <kbd>B</kbd> bomb · <kbd>H</kbd> hold to swing · <kbd>X</kbd> medkit · <kbd>L</kbd> lock car · <kbd>V</kbd> missile at the police chopper · <kbd>J</kbd> thrusters (Roadster, Volt RR) · <kbd>C</kbd> camera / first person · right-drag look · <kbd>Ctrl</kbd> shift-lock · scroll zoom · <kbd>K</kbd> show these keys · <kbd>Esc</kbd> pause</div>
     <button id="pauseBtn" aria-label="Pause">II</button>
   </div>
   <div id="mbanner" hidden><h2 id="mbTitle"></h2><p id="mbSub"></p></div>
@@ -521,7 +521,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
         <button class="btn" id="settingsBtn">Settings</button>
         <button class="btn" id="friendsBtn">Friends<i id="friendsBtnBadge" hidden></i></button>
       </div>
-      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · hold <kbd>J</kbd> to fly the Tesla Roadster on its thrusters · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
+      <p class="keys"><kbd>W A S D</kbd> drive or walk · <kbd>F</kbd> get in, get out, steal cars · <kbd>Q</kbd> or click to shoot · <kbd>1</kbd>–<kbd>5</kbd> switch weapon · <kbd>Space</kbd> drift or jump · <kbd>Shift</kbd> nitro or sprint · <kbd>R</kbd> flip car back · <kbd>M</kbd> map · <kbd>B</kbd> drop bombs from the Stinger · hold <kbd>J</kbd> to fly the Tesla Roadster or Volt RR on their thrusters · <kbd>Space</kbd> or <kbd>F</kbd> while falling opens your parachute · right-drag (or drag a finger) to look around · scroll to zoom, all the way in for first person · <kbd>Ctrl</kbd> shift-lock (the mouse turns the camera) · walk or drive into a glowing marker to start a mission</p>
     </div>
   </section>
 
@@ -1369,6 +1369,11 @@ const BODIES = {
   flipking: {
     name: 'Flip King', blurb: 'Freestyle motocross bike from the Flip It job. Spins faster in the air and lands almost anything.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.35, track: 0, base: 0.3, bike: true, style: 'dirt', accent: '#ff2e88', unlock: 'flip', air: 1.7, tough: 1.3, land: 2.6,
     stats: { top: 58, acc: 19.5, grip: 1.15, mass: 180, hp: 75 }
+  },
+  // the Roadster's two-wheeled sibling: an electric superbike with the same SpaceX thruster pack
+  voltbike: {
+    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, air: 1.3, tough: 1.15, land: 2.2,
+    stats: { top: 80, acc: 24, grip: 1.2, mass: 230, hp: 70 }
   },
   phantom: {
     name: 'Phantom X', blurb: 'Armoured hypercar from the airport heist. The fastest, toughest thing on four wheels.', L: 4.7, W: 2.05, wb: 2.8, wr: 0.36, track: 1.74, base: 0.27, unlock: 'heist',
@@ -3618,7 +3623,13 @@ function genTest(W, rng, addNode, addEdge) {
   shapePolar(W, { cx: -31.5, cz: -4, r0: 0, r1: 5.2, a0: -Math.PI, a1: Math.PI, kind: 'podium', ni: 40, nj: 2, prof: () => 0.55, col: (i, j) => tzc(j > 0.6 ? '#d23a2e' : '#ecebe8') });
   W.parked.push({ x: -31.5, z: -4, h: Math.PI * 0.75, showroom: true, cfg: { body: 'roadster', paint: '#c8102e', finish: 'metallic', rim: 'disc', rimColor: '#2a2c30', stripes: false, neon: 'off', spoiler: 'none', plate: 'ROADSTER', tint: 2 } });
   W.tz.giver = [-30, 22];
-  poi(-31.5, -4, 'T', '#ff4f63', 'Tesla Roadster', 'On display, and locked: pass the Show Off trial (the marker next to it) to unlock it.');
+  poi(-31.5, -4, 'T', '#ff4f63', 'Tesla Roadster', 'On display, and locked: pass the Show Off trial in a car (the marker south of it) to unlock it.');
+  W.parked.push({ x: -22, z: 30, h: Math.PI, cfg: { body: 'viper' } });   // a regular car for the car trial, in case you came on a bike
+  // ...and its two-wheeled sibling on a second podium, with bikes to borrow for its own trial
+  shapePolar(W, { cx: -31.5, cz: -34, r0: 0, r1: 3.6, a0: -Math.PI, a1: Math.PI, kind: 'podium', ni: 32, nj: 2, prof: () => 0.45, col: (i, j) => tzc(j > 0.6 ? '#1f8fd6' : '#ecebe8') });
+  W.parked.push({ x: -31.5, z: -34, h: Math.PI * 0.7, showroom: true, cfg: { body: 'voltbike', paint: '#eef1f4', finish: 'metallic', plate: 'VOLT RR' } });
+  W.parked.push({ x: -22, z: -58, h: 0, cfg: { body: 'bike' } }, { x: -19, z: -58, h: 0, cfg: { body: 'mudslinger' } });
+  poi(-31.5, -34, 'V', '#36c5ff', 'Volt RR', 'An electric superbike with the Roadster\'s thruster pack. On display, and locked: pass Show Off on Two Wheels on a motorbike (the marker south of it) to unlock it.');
 
   // ---- east: skid pad, slalom, precision stop, speed bumps, moguls, banked bowl ----
   W.tz.skid = { x: 200, z: -160, r: 52 };
@@ -4050,7 +4061,8 @@ function stepVehicle(v, dt) {
   } else {
     v.y += v.vy * dt; v.airT += dt;
     // on a motorbike you control the spin in the air: S pulls a backflip, W pushes a frontflip
-    const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4;
+    const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4 && !v.jetOn;
+    if (v.jetOn && v.bike) { v.pitV *= Math.exp(-6 * dt); v.pit = wrapA(v.pit) * Math.exp(-4 * dt); v.flipAcc = 0; }   // thrusters hold a bike level
     if (flipper) {
       const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ip = (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
       v.pitV = clamp(v.pitV + ip * 9 * k * dt, -6.5 * k, 6.5 * k);
@@ -4428,9 +4440,13 @@ function sparks(x, y, z, n) {
 }
 function explode(x, y, z, power, src, self, big, remote) {
   schoolAlarm(x, z);
-  if (!remote && (isPlayerSrc(src) || (self && self === G.player))) netFx(['e', nr2(x), nr2(y), nr2(z), nr2(power), big ? 1 : 0]);
+  if (!remote && (isPlayerSrc(src) || (self && self === G.player))) netFx(['e', nr2(x), nr2(y), nr2(z), nr2(power), big ? 1 : 0, BOOM.pug ? 1 : 0]);
   { const PP = PF(); if (PP && self !== G.player && Math.hypot(PP.x - x, PP.z - z) < 16) crashCam(16, x, z); }
   boomFX(x, y, z, power, big);
+  if (BOOM.pug) {   // a pug bomb: a chain of blasts rolling out around the main one
+    G.shake = Math.max(G.shake, 1.6);
+    for (let k = 0; k < 6; k++) { const a = rand(0, TAU), rr = rand(7, 24), bx = x + Math.cos(a) * rr, bz = z + Math.sin(a) * rr; boomLater(rand(0.12, 0.8), () => boomFX(bx, heightAt(bx, bz) + 0.6, bz, rand(1.8, 3), false)); }
+  }
   const R = big ? 42 : 9 * power;
   for (const v of VEH.list) {
     if (v === self || v.remote) continue;
@@ -4450,7 +4466,7 @@ function explode(x, y, z, power, src, self, big, remote) {
     if (p.type === 'pump') { if (remote) { if (d < 2.5) p.st = 3; } else if (d < 6 * Math.max(1, power * 0.8)) { p.st = 3; boomLater(rand(0.2, 0.5), () => pumpBlast(p, src)); } }
     else if (d < 6 * power) knockProp(p, { vx: (p.x - x) * 2, vz: (p.z - z) * 2, kind: 'x' }, 10);
   }
-  if (!remote) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);
+  if (!remote && !BOOM.pug) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);   // a pug bomb levels everything in reach on its own (pugLevel)
   damagePlanesAt(x, y, z, big ? 30 : 7 * power, power, src);
   if (HELI.active && !HELI.down) { const d = Math.hypot(HELI.x - x, HELI.y - y, HELI.z - z), R2 = (big ? 30 : 9 * power); if (d < R2) heliDamage((1 - d / R2) * 260 * power, isPlayerSrc(src)); }
 }
@@ -4464,8 +4480,8 @@ function jetPlumes(v) {
     JET_GEO.setAttribute('color', new THREE.BufferAttribute(col, 3));
     JET_MAT = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false, toneMapped: false });
   }
-  const g = new THREE.Group(), f = 0.42 * (v.front - v.rear);
-  for (const [z, x] of [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
+  const g = new THREE.Group(), f = (v.bike ? 0.3 : 0.42) * (v.front - v.rear);
+  for (const [z, x] of v.bike ? [[f, 0], [-f, 0]] : [[f, 0.7], [f, -0.7], [-f, 0.7], [-f, -0.7]]) { const m = new THREE.Mesh(JET_GEO, JET_MAT); m.position.set(x, 0.22, z); g.add(m); }
   g.visible = false; v.model.root.add(g); return g;
 }
 function vehicleEffects(v, dt) {
@@ -4498,7 +4514,7 @@ function vehicleEffects(v, dt) {
     for (const s of [1, -1]) { const rx = v.x - fx * v.st.wb / 2 + fz * s * 0.8, rz = v.z - fz * v.st.wb / 2 - fx * s * 0.8; FX.smoke.emit(rx, v.y + 0.3, rz, rand(-0.5, 0.5), rand(0.4, 1.2), rand(-0.5, 0.5), rand(1, 1.8), rand(0.5, 0.9), COL.smoke, 0.32, -0.3, 1, 1.4, 4); }
     if (v === G.player) G.skid = Math.max(G.skid || 0, clamp((v.slip - 3) / 8, 0, 1));
   }
-  if (v.jetOn) for (const [a, s] of [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
+  if (v.jetOn) for (const [a, s] of v.bike ? [[0.3, 0], [-0.3, 0]] : [[0.42, 1], [0.42, -1], [-0.42, 1], [-0.42, -1]]) {
     const f = a * (v.front - v.rear), ex = v.x + fx * f + fz * s * 0.7, ez = v.z + fz * f - fx * s * 0.7;
     if (Math.random() < 0.6) FX.smoke.emit(ex, v.y - 1.2, ez, rand(-0.8, 0.8), rand(-7, -4), rand(-0.8, 0.8), rand(0.25, 0.4), rand(0.4, 0.6), COL.jetGas, 0.45, 0, 3, 2.6, 4);
   }
@@ -5269,9 +5285,11 @@ function pedsExplosion(x, y, z, power, src) {
     const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz, Math.max(0, Math.abs(p.y + 0.9 - y) - 1.2));   // height counts: a blast in the street can't reach a parachutist
     if (p.rag) { const P = p.rag.pos; const ddx = P[24] - x, ddz = P[26] - z, dd = Math.hypot(ddx, ddz, Math.max(0, Math.abs(P[25] - y) - 1.2)); if (dd < 10 * power) { p.rag.asleep = false; p.rag.still = 0; const f = (1 - dd / (10 * power)) * 14 * power; for (let i = 0; i < p.rag.n; i++) { p.rag.prev[i * 3] -= ddx / (dd || 1) * f * RSTEP; p.rag.prev[i * 3 + 1] -= f * 0.8 * RSTEP; p.rag.prev[i * 3 + 2] -= ddz / (dd || 1) * f * RSTEP; } } continue; }
     if (d < 11 * power) {
-      const f = (1 - d / (11 * power)) * 16 * power, nx = dx / (d || 1), nz = dz / (d || 1);
+      let f = (1 - d / (11 * power)) * 16 * power; const nx = dx / (d || 1), nz = dz / (d || 1);
+      const spared = p.isHero && BOOM.pug && d > 14;   // a pug bomb knocks you flat from a distance, it only kills up close
+      if (spared) f = Math.min(f, 9);
       toRagdoll(p, nx * f, nz * f, f, null);
-      if (p.isHero) { HERO.hurtT = 0; heroDamage(f * 7, 'blast'); continue; }
+      if (p.isHero) { HERO.hurtT = 0; heroDamage(spared ? Math.min(f * 7, 25) : f * 7, 'blast'); continue; }
       if (d < 7 * power) {
         killPed(p, isPlayerSrc(src));
         if (settings.gore !== 'off') { bloodBurst(p.x, p.y + 1, p.z, nx * f, nz * f, 16, 1.2); if (settings.gore === 'high' && d < 4) { detach(p, pick(['armL', 'armR', 'legL', 'legR'])); if (Math.random() < 0.5) detach(p, pick(['armL', 'legR'])); } }
@@ -5437,6 +5455,7 @@ function toggleVehicle() {
     if (!HERO.p || HERO.p.rag) return;
     if (HERO.enter) { HERO.enter = null; return; }
     if (HERO.chute) return;
+    if (pugToggle()) return;
     const pl = nearPlane(); if (pl) { enterPlane(pl); return; }
     const v = findEnterable();
     if (v && v.showroom && bodyLocked(v.cfg.body)) { feed(`The ${BODIES[v.cfg.body].name} is locked: ${UNLOCK_HOW[BODIES[v.cfg.body].unlock] || 'finish its job'} to unlock it`, 'red'); return; }
@@ -5942,7 +5961,7 @@ function updateWeapons(dt) {
   if (!gunsOn() && ARMS.cur) ARMS.cur = 0;
   const i = ARMS.cur, w = WEAPONS[i];
   if (ARMS.reloadT > 0) { ARMS.reloadT -= dt; if (ARMS.reloadT <= 0) { const need = w.mag - ARMS.mag[i], got = Math.min(need, ARMS.ammo[i]); ARMS.mag[i] += got; ARMS.ammo[i] -= got; } }
-  const live = !G.down && !APP.paused && (G.onFoot ? HERO.p && HERO.p.active && !HERO.p.rag && !HERO.swim : !!G.player && !G.player.tank) && !weaponsBanned();
+  const live = !G.down && !APP.paused && (G.onFoot ? HERO.p && HERO.p.active && !HERO.p.rag && !HERO.swim : !!G.player && !G.player.tank) && !weaponsBanned() && !PUG.held;
   // lock-on target for keyboard / touch / gamepad
   const o = live && i ? muzzle() : null;
   const facing = G.onFoot ? (HERO.p ? HERO.p.h : 0) : (G.player ? G.player.h : 0);
@@ -5962,7 +5981,7 @@ function updateWeapons(dt) {
   } else if (G.onFoot && HERO.p) ARMS.aimYaw = HERO.p.h;
   updateRockets(dt); updateTracers(dt); updatePickups(dt);
   // gun in the player's hand
-  const g = ARMS.gun, showHero = G.onFoot && i && HERO.p && HERO.p.active && !HERO.p.rag;
+  const g = ARMS.gun, showHero = G.onFoot && i && HERO.p && HERO.p.active && !HERO.p.rag && !PUG.held;
   g.visible = !!showHero;
   if (showHero) {
     for (const k in ARMS.models) ARMS.models[k].visible = k === w.id;
@@ -6933,6 +6952,7 @@ function updateHUD(dt) {
   if (HUD.exitHintT > 0) HUD.exitHintT -= dt;
   if (SHOP.prompt && !G.down && (G.onFoot || SHOP.carPrompt)) pr = SHOP.prompt;
   if (G.onFoot && !G.down && HERO.carrots > 0 && !SHOP.inside) { const cv = carrotTarget(); if (cv) pr = APP.touch ? 'Tap CAR to shove a carrot up the exhaust' : `${key('G')}Shove a carrot up the exhaust <small>${HERO.carrots} left</small>`; }
+  if (G.onFoot && !G.down && !SHOP.inside && HERO.p && !HERO.p.rag) { if (PUG.held) pr = APP.touch ? 'Tap HORN to throw the pug bomb · CAR to put it down' : `${key('Q')}or click: throw the pug bomb · ${key('F')}put it down`; else if (!HERO.enter && pugNear()) pr = APP.touch ? 'Tap CAR to pick up the pug' : `${key('F')}Pick up the pug`; }
   if (G.onFoot && !G.down && canDeploy() && (!HERO.fly || HERO.vy < -6)) { const low = chuteAlt() < 60 && (!HERO.p.rag || HERO.p.rag.pos[25] < HERO.p.rag.prev[25]); pr = (low ? '⚠ ' : '') + (APP.touch ? 'Tap CAR to open your parachute' : `${key('Space')}${key('F')}Open your parachute`); }
   if (G.plane && !G.down) {
     const PL = G.plane;
@@ -7055,6 +7075,7 @@ function readInput(P) {
   let thr = (KEYS.KeyW || KEYS.ArrowUp || TOUCH.gas) ? 1 : 0, brk = (KEYS.KeyS || KEYS.ArrowDown || TOUCH.brake) ? 1 : 0;
   let steer = ((KEYS.KeyA || KEYS.ArrowLeft || TOUCH.left) ? 1 : 0) - ((KEYS.KeyD || KEYS.ArrowRight || TOUCH.right) ? 1 : 0);
   let hand = !!(KEYS.Space || TOUCH.hand), nitro = !!(KEYS.ShiftLeft || KEYS.ShiftRight || TOUCH.nitro), horn = !!(KEYS.KeyH || TOUCH.horn), punch = !!(KEYS.KeyQ || HERO.click);
+  const pugClick = HERO.click || ARMS.mouse.down;
   HERO.click = false;
   if (APP.touch) {
     // Touch: RUN / N2O drive you forward on their own, no need to hold WALK / GAS too
@@ -7086,7 +7107,8 @@ function readInput(P) {
     I.mz = off ? 0 : padY ? -padY : (thr > 0.3 ? 1 : 0) - (brk > 0.3 ? 1 : 0); I.mx = off ? 0 : padX ? padX : -Math.sign(steer);   // camera-relative: forward / right
     I.jump = !off && hand && !HERO.jumpHeld; HERO.jumpHeld = hand;
     const pu = punch || horn;
-    if (ARMS.cur && gunsOn()) { ARMS.trigger = !off && pu; I.punch = false; HERO.punchHeld = pu; }
+    if (PUG.held) { const t = pu || ARMS.mouse.down; ARMS.trigger = false; I.punch = false; if (!off && t && !HERO.punchHeld) throwPug(pugClick); HERO.punchHeld = t; }   // holding a pug bomb: the fire button throws it
+    else if (ARMS.cur && gunsOn()) { ARMS.trigger = !off && pu; I.punch = false; HERO.punchHeld = pu; }
     else { ARMS.trigger = false; I.punch = !off && pu && !HERO.punchHeld; HERO.punchHeld = pu; }
     if (hornOn) { hornOn = false; SFX.hornSet(false); }
     return;
@@ -7274,7 +7296,7 @@ const RIM_COLORS = ['#c9ccd2', '#2a2c30', '#d4af37', '#b03030', '#2f6fd9', '#f2f
 const NEONS = ['#ff2e88', '#22e0ff', '#3dff8b', '#b44dff', '#ffd02e', '#ff3b2e'];
 let garageTab = 'body';
 const TABS = [['body', 'Body'], ['paint', 'Paint'], ['wheels', 'Wheels'], ['style', 'Style'], ['tuning', 'Tuning']];
-const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job', roadster: 'pass the Show Off trial at the Testing Zone' };
+const UNLOCK_HOW = { heist: 'pull off the Airport Heist', flip: 'land a backflip in the Flip It job', roadster: 'pass the Show Off trial at the Testing Zone in a car', voltbike: 'pass Show Off on Two Wheels at the Testing Zone on a motorbike' };
 function setCar(k, v) { if (k === 'body' && bodyLocked(v)) { feed(`To unlock the ${BODIES[v].name}, ${UNLOCK_HOW[BODIES[v].unlock] || 'finish its job'}`, 'red'); return; } carCfg[k] = v; saveCar(); garageSetCar(carCfg); renderGarageUI(); }
 function renderGarageUI() {
   const B = BODIES[carCfg.body];
@@ -7620,7 +7642,7 @@ function collapseStruct(s, bx, bz, quiet) {
   for (const m of s.hide) if (m) m.visible = false;
   STR.active.push(s);
   if (quiet) { s.t = s.dur * 0.995; if (s.station && s.kind === 'shop') s.station.wrecked = true; return; }   // it fell before we got here: skip straight to rubble
-  if (!s.netRemote) netFx(['c', STR.list.indexOf(s)]);
+  if (!s.netRemote && !BOOM.quietNet) netFx(['c', STR.list.indexOf(s)]);
   const camD = Math.hypot(cx - camera.position.x, cz - camera.position.z);
   BOOM.sounds.push({ t: GT + camD / 340, v: clamp(1.1 - camD / 400, 0.1, 1), big: H > 20, far: camD, collapse: true });
   G.shake = Math.max(G.shake, clamp(1 - camD / (60 + H * 2), 0, 1) * 1.4);
@@ -8723,7 +8745,10 @@ function netApplyFx(N, e) {
   const t = e[1];
   if (t === 'e') {
     const wasDown = G.down;
-    explode(nnum(e[2]), nnum(e[3]), nnum(e[4]), clamp(nnum(e[5], 1), 0.2, 6), 'remote', null, !!e[6], true);
+    const pug = !!e[7];   // another player's pug bomb: the same blast, and every building in reach comes down here too
+    BOOM.pug = pug;
+    try { explode(nnum(e[2]), nnum(e[3]), nnum(e[4]), clamp(nnum(e[5], 1), 0.2, 6), 'remote', null, !!e[6], true); } finally { BOOM.pug = false; }
+    if (pug) pugLevel(nnum(e[2]), nnum(e[4]), true);
     if (!wasDown && G.down) netKilledBy(N, 'blew you up');
   } else if (t === 'c') {
     const s = STR.list[nnum(e[2], -1)];
@@ -10093,11 +10118,96 @@ function updatePug(dt) {
     else feed('Squeak!', 'blue');
     pugRain(first ? 26 : 4, F);
   }
+  if (PUG.held && !pugHeroOK()) pugDrop();   // knocked over, got in a car, died: it falls out of your hands
   for (let i = PUG.rain.length - 1; i >= 0; i--) {
-    const r = PUG.rain[i]; r.t += dt; r.vy -= 18 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
+    const r = PUG.rain[i]; r.t += dt;
+    if (r.held) { const p = HERO.p; r.x = p.x + Math.sin(p.h) * 0.42; r.z = p.z + Math.cos(p.h) * 0.42; r.y = p.y + 0.78; r.m.position.set(r.x, r.y, r.z); r.m.rotation.set(0, p.h, 0); continue; }
+    if (r.thrown) {   // a pug bomb in flight: small steps so it can't skip through a car or a wall
+      const n = Math.max(1, Math.ceil(Math.hypot(r.vx, r.vy, r.vz) * dt / 0.4)), h = dt / n; let hit = r.t > 8;
+      for (let k = 0; k < n && !hit; k++) { r.vy -= 18 * h; r.x += r.vx * h; r.y += r.vy * h; r.z += r.vz * h; hit = pugHit(r); }
+      if (hit) { scene.remove(r.m); PUG.rain.splice(i, 1); pugBlast(r.x, Math.max(r.y, heightAt(r.x, r.z)), r.z); continue; }
+      r.m.position.set(r.x, r.y, r.z); r.m.rotation.x += r.spin * dt; r.m.rotation.y += r.spin * 0.6 * dt; continue;
+    }
+    r.vy -= 18 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
     const gh = heightAt(r.x, r.z); if (r.y < gh) { r.y = gh; r.vy = Math.abs(r.vy) * 0.55; r.vx *= 0.7; r.vz *= 0.7; if (Math.abs(r.vy) > 2) SFX.squeak(0.18); }
     r.m.position.set(r.x, r.y, r.z); r.m.rotation.y += r.spin * dt;
-    if (r.t > 14) { scene.remove(r.m); PUG.rain.splice(i, 1); }
+    if (r.t > 90) { scene.remove(r.m); PUG.rain.splice(i, 1); }   // they hang around for a while so you can pick them up
+  }
+}
+// ---------- pug bombs: pick up a fallen mini pug (F), throw it (click or Q); it goes off on contact and levels the block ----------
+const PUG_BLAST_R = 50;
+function pugHeroOK() { const p = HERO.p; return G.onFoot && !G.down && !!p && p.active && !p.rag && !HERO.swim && !HERO.chute && !HERO.web && !HERO.fly; }
+function pugNear() {
+  const p = HERO.p; if (!p || PUG.held) return null;
+  let best = null, bd = 2.3 * 2.3;
+  for (const r of PUG.rain) { if (r.thrown) continue; const d = (r.x - p.x) ** 2 + (r.z - p.z) ** 2; if (d < bd && Math.abs(r.y - p.y) < 1.6) { bd = d; best = r; } }
+  return best;
+}
+// F on foot: pick up the pug next to you, or put down the one you're holding (or drop it and carry on into the car)
+function pugToggle() {
+  if (!pugHeroOK()) return false;
+  if (PUG.held) { pugDrop(); return !(nearPlane() || findEnterable()); }
+  const r = pugNear(); if (!r) return false;
+  PUG.held = r; r.held = true; r.vx = r.vy = r.vz = 0; r.t = 0; SFX.squeak(0.8);
+  if (!PUG.tip) { PUG.tip = true; feed(APP.touch ? 'Pug bomb! Tap HORN to throw it. It goes off on contact' : 'Pug bomb! Click or press Q to throw it. It goes off on contact', 'red'); }
+  return true;
+}
+function pugDrop() { const r = PUG.held; if (!r) return; PUG.held = null; r.held = false; r.t = 0; r.vx = r.vy = r.vz = 0; }
+function throwPug(mouse) {
+  const r = PUG.held, p = HERO.p; if (!r || !p) return;
+  if (weaponsBanned()) { feed('Not on school grounds', 'red'); return; }
+  const T = !mouse || CAM.fpFoot || (CAM.sl && rbxFoot()) || document.pointerLockElement ? centerRayPoint() : mouseRayPoint(null);
+  const ox = r.x, oy = r.y + 0.3, oz = r.z;
+  let dx = T.x - ox, dy = T.y - oy, dz = T.z - oz, hd = Math.hypot(dx, dz);
+  if (hd < 8) {   // aimed at the ground right in front (or the camera looks down): throw it 30 m the way the camera faces
+    camera.getWorldDirection(_pugV); const a = Math.hypot(_pugV.x, _pugV.z) > 0.2 ? Math.atan2(_pugV.x, _pugV.z) : p.h;
+    dx = Math.sin(a) * 30; dz = Math.cos(a) * 30; dy = heightAt(ox + dx, oz + dz) - oy; hd = 30;
+  }
+  if (hd > 70) { const k = 70 / hd; dx *= k; dy *= k; dz *= k; hd = 70; }
+  const t = clamp(hd / 26, 0.35, 1.8);   // flight time: lands where you aimed
+  r.vx = dx / t; r.vz = dz / t; r.vy = Math.min(30, dy / t + 9 * t);
+  r.held = false; r.thrown = true; r.t = 0; r.spin = rand(-12, 12); PUG.held = null;
+  p.h = Math.atan2(dx, dz); HERO.punchT = 0.45; ARMS.cool = Math.max(ARMS.cool, 0.5);
+  SFX.squeak(1); SFX.whoosh();
+}
+const _pugB = [], _pugV = new THREE.Vector3();
+function pugHit(r) {
+  const x = r.x, y = r.y, z = r.z;
+  if (y <= heightAt(x, z) + 0.12) return true;
+  if (W.waters && y < 0.2 && waterAt(x, z)) return true;
+  W.boxGrid.query(x - 0.3, z - 0.3, x + 0.3, z + 0.3, _pugB);
+  for (const b of _pugB) if (x > b.x0 - 0.2 && x < b.x1 + 0.2 && z > b.z0 - 0.2 && z < b.z1 + 0.2 && y < b.h + 0.2) return true;
+  for (const v of VEH.list) {
+    const ex = x - v.x, ez = z - v.z; if (ex * ex + ez * ez > 16 || v.sunk) continue;
+    const fx = Math.sin(v.h), fz = Math.cos(v.h), lf = ex * fx + ez * fz, lr = ex * fz - ez * fx;
+    if (lf > v.rear - 0.25 && lf < v.front + 0.25 && Math.abs(lr) < (v.halfW || 1) + 0.25 && y > v.y - 0.3 && y < v.y + 1.8) return true;
+  }
+  if (r.t > 0.1) for (const q of PED.list) {
+    if (!q.active || q.isHero || q.dead) continue;
+    const qx = q.rag ? q.rag.pos[24] : q.x, qz = q.rag ? q.rag.pos[26] : q.z, qy = q.rag ? q.rag.pos[25] - 0.9 : q.y;
+    if ((x - qx) ** 2 + (z - qz) ** 2 < 0.5 && y > qy - 0.2 && y < qy + 1.9) return true;
+  }
+  for (const pl of PLANES.list) if (pl.x !== undefined && (x - pl.x) ** 2 + (y - pl.y) ** 2 + (z - pl.z) ** 2 < 16) return true;
+  if (HELI.active && !HELI.down && (x - HELI.x) ** 2 + (y - HELI.y) ** 2 + (z - HELI.z) ** 2 < 16) return true;
+  return false;
+}
+function pugBlast(x, y, z) {
+  PUG.lastBlast = { x, y, z };
+  BOOM.pug = true;
+  try { explode(x, y + 0.6, z, 4, 'hero', null, true); } finally { BOOM.pug = false; }
+  pugLevel(x, z, false);
+  G.stats.pugBombs = (G.stats.pugBombs || 0) + 1;
+}
+// every building within 50 m comes down, the nearest first, like a shockwave rolling out
+function pugLevel(x, z, remote) {
+  for (const s of STR.list) {
+    if (s.state) continue;
+    const d = Math.hypot(Math.max(s.x0 - x, 0, x - s.x1), Math.max(s.z0 - z, 0, z - s.z1)); if (d > PUG_BLAST_R) continue;
+    boomLater(0.05 + d / 110 + rand(0, 0.08), () => {
+      if (s.state) return;
+      if (remote) { s.netRemote = true; s.byPlayer = false; } else s.byPlayer = true;
+      BOOM.quietNet = true; try { collapseStruct(s, x, z); } finally { BOOM.quietNet = false; }   // other players level it themselves from the one blast message
+    });
   }
 }
 function pugRain(n, F) {
@@ -11234,14 +11344,27 @@ function updateMissionHUD() {
 
 // ---------- Testing Zone: Show Off (unlocks the Tesla Roadster) ----------
 MISSIONS.test = [{ id: 'showoff', name: 'Show Off', reward: 5000, time: 240, unlock: 'roadster', giver: [-30, 22],
-  blurb: 'The engineers want proof before they hand over the Roadster. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Loops, hoops, drifts, flips, big air and fast quarter miles all score, and chaining tricks builds a multiplier.',
-  steps: [{ t: 'style', pts: 15000, air: 3, text: 'Show off' }] }];
+  blurb: 'The engineers want proof before they hand over the Roadster, and they want it in a car: motorbike tricks don\'t count. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Loops, hoops, drifts, big air and fast quarter miles all score, and chaining tricks builds a multiplier.',
+  steps: [{ t: 'style', pts: 15000, air: 3, need: 'car', text: 'Show off in a car' }] },
+{ id: 'showoff2', name: 'Show Off on Two Wheels', reward: 5000, time: 240, unlock: 'voltbike', giver: [-30, -52],
+  blurb: 'The bike team wants the same proof before they hand over the Volt RR, but on a motorbike: car tricks don\'t count. Rack up 15,000 style points, or stay in the air for 3 seconds in one jump. Borrow one of the bikes parked by the marker if you came in a car. Flips score big on a bike.',
+  steps: [{ t: 'style', pts: 15000, air: 3, need: 'bike', text: 'Show off on a motorbike' }] }];
+// does what you're driving count for this trial? (Show Off wants a car, its two-wheeled version a motorbike)
+function styleVehOK(need) {
+  const v = G.player; if (!v || G.onFoot || G.plane || G.down) return false;
+  return need === 'bike' ? !!v.bike : need === 'car' ? !v.bike && !v.tank : true;
+}
 STEP.style = {
-  start(st, s) { s.p0 = STY.pts; STY.runAir = 0; styleCrash(); },
+  start(st, s) { s.got = 0; s.air = 0; s.last = STY.pts; STY.runAir = 0; styleCrash(); },
   update(st, s) {
-    const got = STY.pts - s.p0;
-    setObj(`Style ${got.toLocaleString()} / ${st.pts.toLocaleString()}  ·  best air ${STY.runAir.toFixed(1)} / ${st.air.toFixed(1)} s`);
-    if (got >= st.pts || STY.runAir >= st.air) nextStep();
+    // only tricks done in the right kind of vehicle count: points are banked as they come in, air time when you land
+    const ok = styleVehOK(st.need), d = STY.pts - s.last; s.last = STY.pts;
+    if (ok) { s.got += Math.max(0, d); s.air = Math.max(s.air, STY.runAir); }
+    STY.runAir = 0;
+    const prog = `Style ${s.got.toLocaleString()} / ${st.pts.toLocaleString()}  ·  best air ${s.air.toFixed(1)} / ${st.air.toFixed(1)} s`;
+    const v = G.player, wrong = st.need && v && !G.onFoot && !ok;
+    setObj(wrong ? (st.need === 'bike' ? 'Car tricks don\'t count: get on a motorbike (bikes are parked by the marker)' : 'Bike tricks don\'t count: get in a car (one is parked by the marker)') + `<br><small>${prog}</small>` : prog);
+    if (s.got >= st.pts || s.air >= st.air) nextStep();
   }
 };
 boot();

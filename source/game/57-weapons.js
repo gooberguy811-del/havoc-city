@@ -312,7 +312,7 @@ function updateWeapons(dt) {
   if (!gunsOn() && ARMS.cur) ARMS.cur = 0;
   const i = ARMS.cur, w = WEAPONS[i];
   if (ARMS.reloadT > 0) { ARMS.reloadT -= dt; if (ARMS.reloadT <= 0) { const need = w.mag - ARMS.mag[i], got = Math.min(need, ARMS.ammo[i]); ARMS.mag[i] += got; ARMS.ammo[i] -= got; } }
-  const live = !G.down && !APP.paused && (G.onFoot ? HERO.p && HERO.p.active && !HERO.p.rag && !HERO.swim : !!G.player && !G.player.tank) && !weaponsBanned();
+  const live = !G.down && !APP.paused && (G.onFoot ? HERO.p && HERO.p.active && !HERO.p.rag && !HERO.swim : !!G.player && !G.player.tank) && !weaponsBanned() && !PUG.held;
   // lock-on target for keyboard / touch / gamepad
   const o = live && i ? muzzle() : null;
   const facing = G.onFoot ? (HERO.p ? HERO.p.h : 0) : (G.player ? G.player.h : 0);
@@ -332,7 +332,7 @@ function updateWeapons(dt) {
   } else if (G.onFoot && HERO.p) ARMS.aimYaw = HERO.p.h;
   updateRockets(dt); updateTracers(dt); updatePickups(dt);
   // gun in the player's hand
-  const g = ARMS.gun, showHero = G.onFoot && i && HERO.p && HERO.p.active && !HERO.p.rag;
+  const g = ARMS.gun, showHero = G.onFoot && i && HERO.p && HERO.p.active && !HERO.p.rag && !PUG.held;
   g.visible = !!showHero;
   if (showHero) {
     for (const k in ARMS.models) ARMS.models[k].visible = k === w.id;

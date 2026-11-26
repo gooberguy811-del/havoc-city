@@ -140,7 +140,10 @@ function netApplyFx(N, e) {
   const t = e[1];
   if (t === 'e') {
     const wasDown = G.down;
-    explode(nnum(e[2]), nnum(e[3]), nnum(e[4]), clamp(nnum(e[5], 1), 0.2, 6), 'remote', null, !!e[6], true);
+    const pug = !!e[7];   // another player's pug bomb: the same blast, and every building in reach comes down here too
+    BOOM.pug = pug;
+    try { explode(nnum(e[2]), nnum(e[3]), nnum(e[4]), clamp(nnum(e[5], 1), 0.2, 6), 'remote', null, !!e[6], true); } finally { BOOM.pug = false; }
+    if (pug) pugLevel(nnum(e[2]), nnum(e[4]), true);
     if (!wasDown && G.down) netKilledBy(N, 'blew you up');
   } else if (t === 'c') {
     const s = STR.list[nnum(e[2], -1)];

@@ -106,11 +106,96 @@ function updatePug(dt) {
     else feed('Squeak!', 'blue');
     pugRain(first ? 26 : 4, F);
   }
+  if (PUG.held && !pugHeroOK()) pugDrop();   // knocked over, got in a car, died: it falls out of your hands
   for (let i = PUG.rain.length - 1; i >= 0; i--) {
-    const r = PUG.rain[i]; r.t += dt; r.vy -= 18 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
+    const r = PUG.rain[i]; r.t += dt;
+    if (r.held) { const p = HERO.p; r.x = p.x + Math.sin(p.h) * 0.42; r.z = p.z + Math.cos(p.h) * 0.42; r.y = p.y + 0.78; r.m.position.set(r.x, r.y, r.z); r.m.rotation.set(0, p.h, 0); continue; }
+    if (r.thrown) {   // a pug bomb in flight: small steps so it can't skip through a car or a wall
+      const n = Math.max(1, Math.ceil(Math.hypot(r.vx, r.vy, r.vz) * dt / 0.4)), h = dt / n; let hit = r.t > 8;
+      for (let k = 0; k < n && !hit; k++) { r.vy -= 18 * h; r.x += r.vx * h; r.y += r.vy * h; r.z += r.vz * h; hit = pugHit(r); }
+      if (hit) { scene.remove(r.m); PUG.rain.splice(i, 1); pugBlast(r.x, Math.max(r.y, heightAt(r.x, r.z)), r.z); continue; }
+      r.m.position.set(r.x, r.y, r.z); r.m.rotation.x += r.spin * dt; r.m.rotation.y += r.spin * 0.6 * dt; continue;
+    }
+    r.vy -= 18 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.z += r.vz * dt;
     const gh = heightAt(r.x, r.z); if (r.y < gh) { r.y = gh; r.vy = Math.abs(r.vy) * 0.55; r.vx *= 0.7; r.vz *= 0.7; if (Math.abs(r.vy) > 2) SFX.squeak(0.18); }
     r.m.position.set(r.x, r.y, r.z); r.m.rotation.y += r.spin * dt;
-    if (r.t > 14) { scene.remove(r.m); PUG.rain.splice(i, 1); }
+    if (r.t > 90) { scene.remove(r.m); PUG.rain.splice(i, 1); }   // they hang around for a while so you can pick them up
+  }
+}
+// ---------- pug bombs: pick up a fallen mini pug (F), throw it (click or Q); it goes off on contact and levels the block ----------
+const PUG_BLAST_R = 50;
+function pugHeroOK() { const p = HERO.p; return G.onFoot && !G.down && !!p && p.active && !p.rag && !HERO.swim && !HERO.chute && !HERO.web && !HERO.fly; }
+function pugNear() {
+  const p = HERO.p; if (!p || PUG.held) return null;
+  let best = null, bd = 2.3 * 2.3;
+  for (const r of PUG.rain) { if (r.thrown) continue; const d = (r.x - p.x) ** 2 + (r.z - p.z) ** 2; if (d < bd && Math.abs(r.y - p.y) < 1.6) { bd = d; best = r; } }
+  return best;
+}
+// F on foot: pick up the pug next to you, or put down the one you're holding (or drop it and carry on into the car)
+function pugToggle() {
+  if (!pugHeroOK()) return false;
+  if (PUG.held) { pugDrop(); return !(nearPlane() || findEnterable()); }
+  const r = pugNear(); if (!r) return false;
+  PUG.held = r; r.held = true; r.vx = r.vy = r.vz = 0; r.t = 0; SFX.squeak(0.8);
+  if (!PUG.tip) { PUG.tip = true; feed(APP.touch ? 'Pug bomb! Tap HORN to throw it. It goes off on contact' : 'Pug bomb! Click or press Q to throw it. It goes off on contact', 'red'); }
+  return true;
+}
+function pugDrop() { const r = PUG.held; if (!r) return; PUG.held = null; r.held = false; r.t = 0; r.vx = r.vy = r.vz = 0; }
+function throwPug(mouse) {
+  const r = PUG.held, p = HERO.p; if (!r || !p) return;
+  if (weaponsBanned()) { feed('Not on school grounds', 'red'); return; }
+  const T = !mouse || CAM.fpFoot || (CAM.sl && rbxFoot()) || document.pointerLockElement ? centerRayPoint() : mouseRayPoint(null);
+  const ox = r.x, oy = r.y + 0.3, oz = r.z;
+  let dx = T.x - ox, dy = T.y - oy, dz = T.z - oz, hd = Math.hypot(dx, dz);
+  if (hd < 8) {   // aimed at the ground right in front (or the camera looks down): throw it 30 m the way the camera faces
+    camera.getWorldDirection(_pugV); const a = Math.hypot(_pugV.x, _pugV.z) > 0.2 ? Math.atan2(_pugV.x, _pugV.z) : p.h;
+    dx = Math.sin(a) * 30; dz = Math.cos(a) * 30; dy = heightAt(ox + dx, oz + dz) - oy; hd = 30;
+  }
+  if (hd > 70) { const k = 70 / hd; dx *= k; dy *= k; dz *= k; hd = 70; }
+  const t = clamp(hd / 26, 0.35, 1.8);   // flight time: lands where you aimed
+  r.vx = dx / t; r.vz = dz / t; r.vy = Math.min(30, dy / t + 9 * t);
+  r.held = false; r.thrown = true; r.t = 0; r.spin = rand(-12, 12); PUG.held = null;
+  p.h = Math.atan2(dx, dz); HERO.punchT = 0.45; ARMS.cool = Math.max(ARMS.cool, 0.5);
+  SFX.squeak(1); SFX.whoosh();
+}
+const _pugB = [], _pugV = new THREE.Vector3();
+function pugHit(r) {
+  const x = r.x, y = r.y, z = r.z;
+  if (y <= heightAt(x, z) + 0.12) return true;
+  if (W.waters && y < 0.2 && waterAt(x, z)) return true;
+  W.boxGrid.query(x - 0.3, z - 0.3, x + 0.3, z + 0.3, _pugB);
+  for (const b of _pugB) if (x > b.x0 - 0.2 && x < b.x1 + 0.2 && z > b.z0 - 0.2 && z < b.z1 + 0.2 && y < b.h + 0.2) return true;
+  for (const v of VEH.list) {
+    const ex = x - v.x, ez = z - v.z; if (ex * ex + ez * ez > 16 || v.sunk) continue;
+    const fx = Math.sin(v.h), fz = Math.cos(v.h), lf = ex * fx + ez * fz, lr = ex * fz - ez * fx;
+    if (lf > v.rear - 0.25 && lf < v.front + 0.25 && Math.abs(lr) < (v.halfW || 1) + 0.25 && y > v.y - 0.3 && y < v.y + 1.8) return true;
+  }
+  if (r.t > 0.1) for (const q of PED.list) {
+    if (!q.active || q.isHero || q.dead) continue;
+    const qx = q.rag ? q.rag.pos[24] : q.x, qz = q.rag ? q.rag.pos[26] : q.z, qy = q.rag ? q.rag.pos[25] - 0.9 : q.y;
+    if ((x - qx) ** 2 + (z - qz) ** 2 < 0.5 && y > qy - 0.2 && y < qy + 1.9) return true;
+  }
+  for (const pl of PLANES.list) if (pl.x !== undefined && (x - pl.x) ** 2 + (y - pl.y) ** 2 + (z - pl.z) ** 2 < 16) return true;
+  if (HELI.active && !HELI.down && (x - HELI.x) ** 2 + (y - HELI.y) ** 2 + (z - HELI.z) ** 2 < 16) return true;
+  return false;
+}
+function pugBlast(x, y, z) {
+  PUG.lastBlast = { x, y, z };
+  BOOM.pug = true;
+  try { explode(x, y + 0.6, z, 4, 'hero', null, true); } finally { BOOM.pug = false; }
+  pugLevel(x, z, false);
+  G.stats.pugBombs = (G.stats.pugBombs || 0) + 1;
+}
+// every building within 50 m comes down, the nearest first, like a shockwave rolling out
+function pugLevel(x, z, remote) {
+  for (const s of STR.list) {
+    if (s.state) continue;
+    const d = Math.hypot(Math.max(s.x0 - x, 0, x - s.x1), Math.max(s.z0 - z, 0, z - s.z1)); if (d > PUG_BLAST_R) continue;
+    boomLater(0.05 + d / 110 + rand(0, 0.08), () => {
+      if (s.state) return;
+      if (remote) { s.netRemote = true; s.byPlayer = false; } else s.byPlayer = true;
+      BOOM.quietNet = true; try { collapseStruct(s, x, z); } finally { BOOM.quietNet = false; }   // other players level it themselves from the one blast message
+    });
   }
 }
 function pugRain(n, F) {

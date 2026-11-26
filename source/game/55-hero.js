@@ -79,6 +79,7 @@ function toggleVehicle() {
     if (!HERO.p || HERO.p.rag) return;
     if (HERO.enter) { HERO.enter = null; return; }
     if (HERO.chute) return;
+    if (pugToggle()) return;
     const pl = nearPlane(); if (pl) { enterPlane(pl); return; }
     const v = findEnterable();
     if (v && v.showroom && bodyLocked(v.cfg.body)) { feed(`The ${BODIES[v.cfg.body].name} is locked: ${UNLOCK_HOW[BODIES[v.cfg.body].unlock] || 'finish its job'} to unlock it`, 'red'); return; }

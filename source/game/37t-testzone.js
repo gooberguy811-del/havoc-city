@@ -164,7 +164,13 @@ function genTest(W, rng, addNode, addEdge) {
   shapePolar(W, { cx: -31.5, cz: -4, r0: 0, r1: 5.2, a0: -Math.PI, a1: Math.PI, kind: 'podium', ni: 40, nj: 2, prof: () => 0.55, col: (i, j) => tzc(j > 0.6 ? '#d23a2e' : '#ecebe8') });
   W.parked.push({ x: -31.5, z: -4, h: Math.PI * 0.75, showroom: true, cfg: { body: 'roadster', paint: '#c8102e', finish: 'metallic', rim: 'disc', rimColor: '#2a2c30', stripes: false, neon: 'off', spoiler: 'none', plate: 'ROADSTER', tint: 2 } });
   W.tz.giver = [-30, 22];
-  poi(-31.5, -4, 'T', '#ff4f63', 'Tesla Roadster', 'On display, and locked: pass the Show Off trial (the marker next to it) to unlock it.');
+  poi(-31.5, -4, 'T', '#ff4f63', 'Tesla Roadster', 'On display, and locked: pass the Show Off trial in a car (the marker south of it) to unlock it.');
+  W.parked.push({ x: -22, z: 30, h: Math.PI, cfg: { body: 'viper' } });   // a regular car for the car trial, in case you came on a bike
+  // ...and its two-wheeled sibling on a second podium, with bikes to borrow for its own trial
+  shapePolar(W, { cx: -31.5, cz: -34, r0: 0, r1: 3.6, a0: -Math.PI, a1: Math.PI, kind: 'podium', ni: 32, nj: 2, prof: () => 0.45, col: (i, j) => tzc(j > 0.6 ? '#1f8fd6' : '#ecebe8') });
+  W.parked.push({ x: -31.5, z: -34, h: Math.PI * 0.7, showroom: true, cfg: { body: 'voltbike', paint: '#eef1f4', finish: 'metallic', plate: 'VOLT RR' } });
+  W.parked.push({ x: -22, z: -58, h: 0, cfg: { body: 'bike' } }, { x: -19, z: -58, h: 0, cfg: { body: 'mudslinger' } });
+  poi(-31.5, -34, 'V', '#36c5ff', 'Volt RR', 'An electric superbike with the Roadster\'s thruster pack. On display, and locked: pass Show Off on Two Wheels on a motorbike (the marker south of it) to unlock it.');
 
   // ---- east: skid pad, slalom, precision stop, speed bumps, moguls, banked bowl ----
   W.tz.skid = { x: 200, z: -160, r: 52 };
