@@ -104,7 +104,7 @@ function enterVehicle(v) {
   heroHide();
   G.player = v; v.model.root.add(headSpot, headSpot.target);
   CAM.h = v.h; resetCamera(); SFX.door(); HUD.exitHintT = 4;
-  if ((BODIES[v.cfg.body] || {}).thrusters && !HUD.jetTip) { HUD.jetTip = true; feed(APP.touch ? 'Thruster pack fitted: hold JET to fly. It runs on the Air tank, which refills on the ground' : 'Thruster pack fitted: hold J to fly, W / S to thrust, A / D to turn. The Air tank refills on the ground', 'green'); }
+  if ((BODIES[v.cfg.body] || {}).thrusters && !HUD.jetTip) { HUD.jetTip = true; feed((APP.touch ? 'Thruster pack fitted: hold JET to fly. It runs on the Air tank, which refills on the ground' : 'Thruster pack fitted: hold J to fly, W / S to thrust, A / D to turn. The Air tank refills on the ground') + (v.bike ? (APP.touch ? '. Hold BRAKE in the air to backflip' : '. Hold S in the air to backflip') : ''), 'green'); }
 }
 // car lock: L locks the car you're in or the last one you left. Thieves can't take a locked car and it's never cleared away.
 function toggleLock() {

@@ -98,7 +98,7 @@ function stepVehicle(v, dt) {
   v.jetOn = !!(TB && TB.thrusters) && !v.wrecked && !v.sunk && !!v.input.jet && v.air > 0.01 && !v.tumble && !v.flipped;
   if (v.onGround && !v.jetOn) v.jetUsed = false;
   if (v.jetOn && v.onGround) { v.onGround = false; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; v.rollV = 0; v.vy = Math.max(v.vy || 0, 3); v.y += 0.05; }
-  if (v.jetOn) v.jetUsed = true;
+  if (v.jetOn) { v.jetUsed = true; v.jetEndT = GT; }
   const inp = v.input, st = v.st;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), rx = -fz, rz = fx;
   let vf = v.vx * fx + v.vz * fz, vr = v.vx * rx + v.vz * rz;
@@ -196,10 +196,12 @@ function stepVehicle(v, dt) {
   } else {
     v.y += v.vy * dt; v.airT += dt;
     // on a motorbike you control the spin in the air: S pulls a backflip, W pushes a frontflip
+    // (the Volt RR only flips on S: you're usually holding W to accelerate or thrust, and that shouldn't tip you over)
     const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4 && !v.jetOn;
     if (v.jetOn && v.bike) { v.pitV *= Math.exp(-6 * dt); v.pit = wrapA(v.pit) * Math.exp(-4 * dt); v.flipAcc = 0; }   // thrusters hold a bike level
     if (flipper) {
-      const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ip = (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
+      const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ready = GT - (v.jetEndT || -9) > 0.5;   // just off the thrusters: a moment before the keys spin the bike
+      const ip = !ready ? 0 : B.flipS ? -(inp.brake > 0 ? 1 : 0) : (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
       v.pitV = clamp(v.pitV + ip * 9 * k * dt, -6.5 * k, 6.5 * k);
       if (!ip) { v.pitV *= Math.exp(-3.5 * dt); const lv = wrapA(v.pit); if (Math.abs(lv) < 1.0) v.pitV -= lv * 7 * dt; }   // let go and it settles back level
       v.pit += v.pitV * dt; v.flipAcc = (v.flipAcc || 0) + v.pitV * dt;

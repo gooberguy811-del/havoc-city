@@ -1372,7 +1372,7 @@ const BODIES = {
   },
   // the Roadster's two-wheeled sibling: an electric superbike with the same SpaceX thruster pack
   voltbike: {
-    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, air: 1.3, tough: 1.15, land: 2.2,
+    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels. Stays level in the air unless you hold S for a backflip.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, flipS: true, air: 1.3, tough: 1.15, land: 2.2,
     stats: { top: 80, acc: 24, grip: 1.2, mass: 230, hp: 70 }
   },
   phantom: {
@@ -3963,7 +3963,7 @@ function stepVehicle(v, dt) {
   v.jetOn = !!(TB && TB.thrusters) && !v.wrecked && !v.sunk && !!v.input.jet && v.air > 0.01 && !v.tumble && !v.flipped;
   if (v.onGround && !v.jetOn) v.jetUsed = false;
   if (v.jetOn && v.onGround) { v.onGround = false; v.airT = 0; v.airX = v.x; v.airZ = v.z; v.flipAcc = 0; v.pitV = 0; v.rollV = 0; v.vy = Math.max(v.vy || 0, 3); v.y += 0.05; }
-  if (v.jetOn) v.jetUsed = true;
+  if (v.jetOn) { v.jetUsed = true; v.jetEndT = GT; }
   const inp = v.input, st = v.st;
   const fx = Math.sin(v.h), fz = Math.cos(v.h), rx = -fz, rz = fx;
   let vf = v.vx * fx + v.vz * fz, vr = v.vx * rx + v.vz * rz;
@@ -4061,10 +4061,12 @@ function stepVehicle(v, dt) {
   } else {
     v.y += v.vy * dt; v.airT += dt;
     // on a motorbike you control the spin in the air: S pulls a backflip, W pushes a frontflip
+    // (the Volt RR only flips on S: you're usually holding W to accelerate or thrust, and that shouldn't tip you over)
     const flipper = v.bike && v.kind === 'player' && !v.wrecked && Math.abs(v.rollV) < 0.4 && !v.jetOn;
     if (v.jetOn && v.bike) { v.pitV *= Math.exp(-6 * dt); v.pit = wrapA(v.pit) * Math.exp(-4 * dt); v.flipAcc = 0; }   // thrusters hold a bike level
     if (flipper) {
-      const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ip = (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
+      const B = BODIES[v.cfg.body] || {}, k = B.air || 1, ready = GT - (v.jetEndT || -9) > 0.5;   // just off the thrusters: a moment before the keys spin the bike
+      const ip = !ready ? 0 : B.flipS ? -(inp.brake > 0 ? 1 : 0) : (inp.throttle > 0 ? 1 : 0) - (inp.brake > 0 ? 1 : 0);
       v.pitV = clamp(v.pitV + ip * 9 * k * dt, -6.5 * k, 6.5 * k);
       if (!ip) { v.pitV *= Math.exp(-3.5 * dt); const lv = wrapA(v.pit); if (Math.abs(lv) < 1.0) v.pitV -= lv * 7 * dt; }   // let go and it settles back level
       v.pit += v.pitV * dt; v.flipAcc = (v.flipAcc || 0) + v.pitV * dt;
@@ -5480,7 +5482,7 @@ function enterVehicle(v) {
   heroHide();
   G.player = v; v.model.root.add(headSpot, headSpot.target);
   CAM.h = v.h; resetCamera(); SFX.door(); HUD.exitHintT = 4;
-  if ((BODIES[v.cfg.body] || {}).thrusters && !HUD.jetTip) { HUD.jetTip = true; feed(APP.touch ? 'Thruster pack fitted: hold JET to fly. It runs on the Air tank, which refills on the ground' : 'Thruster pack fitted: hold J to fly, W / S to thrust, A / D to turn. The Air tank refills on the ground', 'green'); }
+  if ((BODIES[v.cfg.body] || {}).thrusters && !HUD.jetTip) { HUD.jetTip = true; feed((APP.touch ? 'Thruster pack fitted: hold JET to fly. It runs on the Air tank, which refills on the ground' : 'Thruster pack fitted: hold J to fly, W / S to thrust, A / D to turn. The Air tank refills on the ground') + (v.bike ? (APP.touch ? '. Hold BRAKE in the air to backflip' : '. Hold S in the air to backflip') : ''), 'green'); }
 }
 // car lock: L locks the car you're in or the last one you left. Thieves can't take a locked car and it's never cleared away.
 function toggleLock() {

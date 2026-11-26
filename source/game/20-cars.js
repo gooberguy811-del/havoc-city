@@ -54,7 +54,7 @@ const BODIES = {
   },
   // the Roadster's two-wheeled sibling: an electric superbike with the same SpaceX thruster pack
   voltbike: {
-    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, air: 1.3, tough: 1.15, land: 2.2,
+    name: 'Volt RR', blurb: 'All-electric superbike from the Testing Zone, with the same SpaceX thruster pack as the Roadster: hold J to fly on compressed air. Silent, savage off the line and the fastest thing on two wheels. Stays level in the air unless you hold S for a backflip.', L: 2.15, W: 0.8, wb: 1.45, wr: 0.32, track: 0, base: 0.3, bike: true, style: 'sport', accent: '#36c5ff', unlock: 'voltbike', electric: true, thrusters: true, flipS: true, air: 1.3, tough: 1.15, land: 2.2,
     stats: { top: 80, acc: 24, grip: 1.2, mass: 230, hp: 70 }
   },
   phantom: {
