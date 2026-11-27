@@ -69,6 +69,13 @@ const BODIES = {
     top: [[-2.17, 0.31], [-2.2, 0.66], [-2.05, 0.82], [-1.5, 0.86], [-0.55, 0.84], [0.55, 0.76], [1.5, 0.62], [2.06, 0.5], [2.17, 0.4], [2.15, 0.3]],
     cabin: [[-1.6, 0.85], [-0.9, 1.19], [0.05, 1.22], [1.0, 0.75]], hl: [2.07, 0.52], tl: [-2.19, 0.74], deck: [-1.95, 0.85],
     stats: { top: 86, acc: 22, grip: 1.2, mass: 1700, hp: 110 }
+  },
+  // angular stainless-steel electric pickup: one sharp triangle from nose to tailgate, flush glass, full-width light bars, square-cut wheel arches
+  cybertruck: {
+    name: 'Tesla Cybertruck', blurb: 'Angular stainless-steel electric pickup. Built like a bank vault: heavy, shockingly quick for its size, and it shrugs off crashes that would fold a normal car.', L: 5.7, W: 2.1, wb: 3.6, wr: 0.43, track: 1.78, base: 0.5, electric: true, cyber: true,
+    top: [[-2.82, 0.56], [-2.86, 1.24], [-0.15, 1.8], [2.84, 1.04], [2.86, 0.58]],
+    cabin: [[-1.32, 1.36], [-1.32, 1.565], [-0.15, 1.812], [1.2, 1.475], [1.0, 1.3]], hl: [2.8, 0.99], tl: [-2.84, 1.17], deck: [-2.7, 1.23],
+    stats: { top: 58, acc: 16.5, grip: 0.98, mass: 3000, hp: 230 }
   }
 };
 const bodyLocked = k => { const B = BODIES[k]; return !!(B && B.unlock && !(typeof MIS !== 'undefined' && MIS.unlocked && MIS.unlocked[B.unlock])); };
@@ -126,7 +133,9 @@ function carGeometry(cfg, police) {
     const sh = new THREE.Shape();
     sh.moveTo(top[0][0], top[0][1]);
     for (let i = 1; i < top.length; i++) sh.lineTo(top[i][0], top[i][1]);
+    const cy = !!B.cyber;
     for (const ax of [B.wb / 2, -B.wb / 2]) {
+      if (cy) { const a = R * 1.1, t = R * 0.62, y2 = wr + R * 0.92; sh.lineTo(ax + a, base); sh.lineTo(ax + t, y2); sh.lineTo(ax - t, y2); sh.lineTo(ax - a, base); continue; }   // the Cybertruck's arches are flat-topped trapezoids
       const a0 = Math.asin(clamp((base - wr) / R, -0.95, 0.95));
       sh.lineTo(ax + R * Math.cos(a0), base);
       for (let k = 1; k < 10; k++) { const a = a0 + (Math.PI - 2 * a0) * k / 10; sh.lineTo(ax + R * Math.cos(a), wr + R * Math.sin(a)); }
@@ -141,17 +150,21 @@ function carGeometry(cfg, police) {
     }
     const cab = B.cabin.map(p => [p[0], p[1] + hOff]);
     const cs = new THREE.Shape(); cs.moveTo(cab[0][0], cab[0][1]); for (let i = 1; i < cab.length; i++) cs.lineTo(cab[i][0], cab[i][1]); cs.lineTo(cab[0][0], cab[0][1]);
-    const cw = Wd * 0.82;
-    const cabin = extrudeX(cs, cw - 0.08, 0.04);
+    const cw = cy ? Wd + 0.1 : Wd * 0.82;   // the Cybertruck's glass sits flush in the body sides, so it spans the full width
+    const cabin = extrudeX(cs, cw - 0.08, cy ? 0.02 : 0.04);
+    let roofY, roofZ;
+    if (cy) { roofY = cab[2][1] + 0.01; roofZ = cab[2][0]; }
+    else {
     const r1 = cab[1], r2 = cab[2];
     const rs = new THREE.Shape(); rs.moveTo(r1[0] + 0.02, r1[1] - 0.03); rs.lineTo(r2[0] - 0.02, r2[1] - 0.03); rs.lineTo(r2[0] - 0.04, r2[1] + 0.05); rs.lineTo(r1[0] + 0.04, r1[1] + 0.05); rs.lineTo(r1[0] + 0.02, r1[1] - 0.03);
     paint.push(extrudeX(rs, cw - 0.02, 0.025));
     if (stripe) { const rsS = extrudeX(rs, 0.2, 0.025); rsS.scale(1, 1.006, 1); const b = rsS.clone(); rsS.translate(0.17, 0, 0); b.translate(-0.17, 0, 0); stripe.push(rsS, b); }
-    const roofY = Math.max(r1[1], r2[1]) + 0.075, roofZ = (r1[0] + r2[0]) / 2;
+    roofY = Math.max(r1[1], r2[1]) + 0.075; roofZ = (r1[0] + r2[0]) / 2;
     // painted A and C pillars framing the side glass
     const pill = (p0, p1, w0, w1) => { const s0 = new THREE.Shape(); s0.moveTo(p0[0], p0[1]); s0.lineTo(p1[0], p1[1] + 0.02); s0.lineTo(p1[0] + w1, p1[1] + 0.02); s0.lineTo(p0[0] + w0, p0[1]); s0.lineTo(p0[0], p0[1]); return s0; };
     const cP = pill(cab[0], cab[1], 0.5, 0.3), aP = pill(cab[3], cab[2], -0.2, -0.12);
     for (const sd of [1, -1]) for (const sh2 of [cP, aP]) { const g = extrudeX(sh2, 0.03, 0); g.translate(sd * (cw / 2 + 0.012), 0, 0); paint.push(g); }
+    }
     const trim = [], chrome = [];
     const deck = [B.deck[0], B.deck[1] + hOff];
     if (cfg.spoiler === 'lip') paint.push(boxG(Wd - 0.36, 0.05, 0.26, 0, deck[1] + 0.075, deck[0] + 0.02));
@@ -162,23 +175,23 @@ function carGeometry(cfg, police) {
     // trim details
     const hy = B.hl[1] + hOff, hz = surfX(top, hy, true) + bv;
     const gy = hy - 0.15, gz = surfX(top, gy, true) + bv;
-    trim.push(boxG(Wd * 0.44, 0.13, 0.06, 0, gy, gz - 0.02));
+    if (!cy) trim.push(boxG(Wd * 0.44, 0.13, 0.06, 0, gy, gz - 0.02));   // grille (electric wedges like the Cybertruck have none)
     for (const s of [1, -1]) {
       trim.push(boxG(0.05, 0.09, Math.max(0.3, B.wb - 2 * R - 0.05), s * (Wd / 2 + 0.005), base + 0.02, 0));
       trim.push(boxG(0.2, 0.1, 0.13, s * (cw / 2 + 0.13), cab[0][1] + 0.1, cab[3][0] - 0.22));
     }
     const ry = base + 0.1, rz = surfX(top, ry, false) - bv;
     trim.push(boxG(Wd * 0.66, 0.1, 0.12, 0, ry, rz + 0.04));
-    for (const s of [1, -1]) { const ex = new THREE.CylinderGeometry(0.055, 0.055, 0.2, 10); ex.rotateX(Math.PI / 2); ex.translate(s * 0.4, base + 0.13, rz - 0.02); chrome.push(ex); }
+    if (!B.electric) for (const s of [1, -1]) { const ex = new THREE.CylinderGeometry(0.055, 0.055, 0.2, 10); ex.rotateX(Math.PI / 2); ex.translate(s * 0.4, base + 0.13, rz - 0.02); chrome.push(ex); }   // no exhaust pipes on electric cars
     if (B.bed) {
       const by = 1.2 + hOff + bv;
       trim.push(boxG(Wd - 0.3, 0.02, B.bed[1] - B.bed[0], 0, by + 0.006, (B.bed[0] + B.bed[1]) / 2));
       for (const s of [1, -1]) paint.push(boxG(0.12, 0.06, B.bed[1] - B.bed[0] + 0.1, s * (Wd / 2 - 0.08), by + 0.03, (B.bed[0] + B.bed[1]) / 2));
       paint.push(boxG(Wd - 0.06, 0.06, 0.1, 0, by + 0.03, B.bed[0] - 0.05));
     }
-    const head = mergeGeos([boxG(0.4, 0.12, 0.1, Wd / 2 - 0.36, hy, hz - 0.03), boxG(0.4, 0.12, 0.1, -(Wd / 2 - 0.36), hy, hz - 0.03)]);
+    const head = cy ? boxG(Wd * 0.92, 0.04, 0.06, 0, hy, hz - 0.02) : mergeGeos([boxG(0.4, 0.12, 0.1, Wd / 2 - 0.36, hy, hz - 0.03), boxG(0.4, 0.12, 0.1, -(Wd / 2 - 0.36), hy, hz - 0.03)]);   // Cybertruck: one light bar right across the nose
     const ty = B.tl[1] + hOff, tz = surfX(top, ty, false) - bv;
-    const tail = mergeGeos([boxG(0.44, 0.1, 0.08, Wd / 2 - 0.32, ty, tz + 0.025), boxG(0.44, 0.1, 0.08, -(Wd / 2 - 0.32), ty, tz + 0.025)]);
+    const tail = cy ? boxG(Wd * 0.94, 0.05, 0.06, 0, ty, tz + 0.02) : mergeGeos([boxG(0.44, 0.1, 0.08, Wd / 2 - 0.32, ty, tz + 0.025), boxG(0.44, 0.1, 0.08, -(Wd / 2 - 0.32), ty, tz + 0.025)]);
     const py = ty - 0.2, pzr = surfX(top, py, false) - bv - 0.012;
     const plate = new THREE.PlaneGeometry(0.5, 0.125); plate.rotateY(Math.PI); plate.translate(0, py, pzr);
     let sirenR = null, sirenB = null, door = null;
@@ -398,6 +411,7 @@ function disposeModel(m) { if (m.ownTail) m.tailMat.dispose(); }
 function randomTrafficCfg() {
   if (typeof W !== 'undefined' && W && W.id === 'base' && Math.random() < 0.4) return Object.assign({}, CAR_DEF, milCarCfg(), { plate: 'ARMY ' + ((Math.random() * 900 + 100) | 0) });
   if (typeof W !== 'undefined' && W && W.id === 'nyc' && Math.random() < 0.42) return Object.assign({}, CAR_DEF, { body: Math.random() < 0.7 ? 'viper' : 'bubble', paint: '#f2c21b', finish: 'gloss', rim: 'disc', rimColor: '#2a2c30', stripes: false, neon: 'off', tint: 1, spoiler: 'none', height: 'stock', plate: 'T ' + ((Math.random() * 9000 + 1000) | 0), engine: 2, handling: 2, brakes: 2, armor: 1, nitro: false });
+  if (Math.random() < 0.035) return Object.assign({}, CAR_DEF, { body: 'cybertruck', paint: '#b4b9be', finish: 'metallic', rim: 'disc', rimColor: '#2a2c30', stripes: false, spoiler: 'none', neon: 'off', tint: 2, height: 'stock', plate: 'CYBR ' + ((Math.random() * 900 + 100) | 0) });   // now and then a Cybertruck in traffic
   const body = Math.random() < 0.13 ? pick(['bike', 'bike', 'outlaw', 'mudslinger', 'zippy', 'zippy']) : pick(['viper', 'brute', 'ranger', 'bubble', 'bubble', 'viper', 'brute', 'comet']);
   return { body, paint: pick(TRAFFIC_COLORS), finish: Math.random() < 0.35 ? 'metallic' : 'gloss', stripes: Math.random() < 0.07, stripe: '#f2f2f2', rim: pick(['sport', 'disc', 'classic', 'mesh']), rimColor: pick(['#c9ccd2', '#c9ccd2', '#2a2c30', '#8a8f96']), wheel: 'm', spoiler: Math.random() < 0.12 ? 'lip' : 'none', neon: 'off', tint: Math.random() < 0.3 ? 2 : 1, height: body === 'ranger' && Math.random() < 0.5 ? 'lifted' : 'stock', plate: pick(['4KX 221', 'LMN 904', 'HVC 113', 'JTR 586', 'QWE 702', 'BRT 330']), engine: 2, handling: 2, brakes: 2, armor: 1, nitro: false };
 }

@@ -18,7 +18,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
 };
 
-const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'day', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox', autoRes: 'on', fps: 'off' };
+const SETTINGS_DEF = { ffriends: 'off', bloom: 'on', pedDensity: 60, trafficDensity: 55, police: 'normal', gore: 'low', time: 'cycle', weather: 'cycle', quality: 'medium', volume: 70, units: 'kmh', map: 'neon', damage: 'realistic', slowmo: 'on', guns: 'on', pvp: 'on', camStyle: 'roblox', autoRes: 'on', fps: 'off' };
 const settings = Object.assign({}, SETTINGS_DEF, store.get('havoc.settings', {}));
 const CAR_DEF = { body: 'viper', paint: '#d22f3c', finish: 'gloss', stripes: false, stripe: '#f4f4f4', rim: 'sport', rimColor: '#c9ccd2', wheel: 'm', spoiler: 'none', neon: 'off', tint: 1, height: 'stock', plate: 'HAVOC', engine: 2, handling: 2, brakes: 2, armor: 1, nitro: true };
 const carCfg = Object.assign({}, CAR_DEF, store.get('havoc.car', {}));

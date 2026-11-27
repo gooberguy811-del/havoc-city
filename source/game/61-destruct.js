@@ -107,6 +107,7 @@ function hitStruct(s, dmg, x, y, z, src) {
   if (dmg > 20) {
     for (let k = 0; k < Math.min(30, dmg * 0.3); k++) FX.debris.emit(px, py, pz, rand(-6, 6), rand(-1, 7), rand(-6, 6), rand(1.2, 2.4), rand(0.05, 0.14), Math.random() < 0.5 ? COL.glass : COL.smoke, 1, 20, 0.2, 0, 3);
     FX.smoke.emit(px, py, pz, rand(-1, 1), rand(0.5, 2), rand(-1, 1), rand(2.5, 4), rand(2, 3.5), COL.smoke, 0.5, -0.2, 0.5, 1.4, 4);
+    structChunks(s, clamp(Math.round(dmg * 0.04), 1, 6), px, py, pz);   // lumps of wall break off where it was hit
   }
   if (s.hp <= 0) { collapseStruct(s, x, z); return; }
   if (s.hp < s.maxHp * 0.6 && s.smoking < 2) { s.smoking++; BOOM.plumes.push({ x: px, y: py - 1, z: pz, t: 0, life: 45, rate: 3.5, size: 1.6 + (s.top - s.y0) * 0.01, rise: 2.6 }); if (s.hp < s.maxHp * 0.35) addFire(px, pz, 1.4, 30); }
@@ -122,6 +123,7 @@ function collapseStruct(s, bx, bz, quiet) {
   for (const m of s.hide) if (m) m.visible = false;
   STR.active.push(s);
   if (quiet) { s.t = s.dur * 0.995; if (s.station && s.kind === 'shop') s.station.wrecked = true; return; }   // it fell before we got here: skip straight to rubble
+  collapseChunks(s);   // chunks peel off the walls as it comes down (61b-rubble.js)
   if (!s.netRemote && !BOOM.quietNet) netFx(['c', STR.list.indexOf(s)]);
   const camD = Math.hypot(cx - camera.position.x, cz - camera.position.z);
   BOOM.sounds.push({ t: GT + camD / 340, v: clamp(1.1 - camD / 400, 0.1, 1), big: H > 20, far: camD, collapse: true });

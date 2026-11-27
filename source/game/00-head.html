@@ -147,7 +147,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 .setrow > span{font-weight:600;font-size:16px}
 .setrow > span small{display:block;font-weight:400;font-size:13px;color:var(--muted)}
 .seg{display:flex;background:var(--slab-2);border-radius:4px;padding:3px;gap:3px;flex-wrap:wrap}
-.seg button{flex:1;min-width:0;background:none;border:0;border-radius:3px;padding:7px 6px;font-weight:700;font-size:14px;color:var(--muted)}
+.seg button{flex:1 1 auto;min-width:fit-content;background:none;border:0;border-radius:3px;padding:7px 6px;font-weight:700;font-size:14px;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--sodium);color:#17120a}
 .range{display:flex;align-items:center;gap:10px}
 .range input{flex:1;accent-color:var(--sodium);min-width:0}
@@ -194,6 +194,8 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
 .bust span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .bust i{display:block;height:5px;background:var(--slab-2);border-radius:3px;overflow:hidden}
 .bust i em{display:block;height:100%;width:0;background:var(--siren-blue)}
+#clock{font-weight:700;font-size:14px;letter-spacing:.06em;color:var(--text);text-shadow:0 2px 6px rgba(0,0,0,.7);font-variant-numeric:tabular-nums;margin-top:2px}
+#clock:empty{display:none}
 .cash{font-family:var(--display);font-size:26px;letter-spacing:.04em;color:var(--good);text-shadow:0 2px 8px rgba(0,0,0,.7);font-variant-numeric:tabular-nums}
 .spdrow{display:flex;align-items:flex-end;gap:10px}
 #spd{font-family:var(--display);font-size:72px;line-height:.8;font-variant-numeric:tabular-nums;letter-spacing:.01em}
@@ -417,6 +419,7 @@ input[type=text]{background:var(--slab-2);color:var(--text);border:1px solid var
     <div class="hud-tr">
       <div id="stars" aria-label="Wanted level"></div>
       <div class="cash" id="cash">$0</div>
+      <div id="clock"></div>
       <div id="meds" hidden></div>
       <div id="netchip" hidden></div>
       <div class="bust" id="bust" hidden><span>Stopped by police</span><b>Busted</b><i><em id="bustFill"></em></i></div>

@@ -38,7 +38,7 @@ const SFX = {
       n.connect(g); g.connect(this.master); s.start(0, a + Math.random() * len); this.L[key] = { s, g, f, trim: SND_TRIM[name] || 1 };
     };
     mk('eng', 'eng', 2000); mk('engDiesel', 'engDiesel', 2000); mk('engBike', 'engBike', 2500); mk('prop', 'prop', 3000); mk('jet', 'jet', 6000);
-    mk('ev', 'ev', 3000); mk('thr', 'jet', 7000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
+    mk('ev', 'ev', 3000); mk('thr', 'jet', 7000); mk('rain', 'rain', 9000); mk('heli', 'heli', 4000); mk('heliCop', 'heli', 1800); mk('siren', 'siren'); mk('skid', 'skid'); mk('scrape', 'scrape', 6000); mk('horn', 'horn');
   },
   setVolume(v) { if (this.master) this.master.gain.value = v / 100 * 0.9; },
   ok(name, gap) { const t = performance.now(); if (this.last[name] && t - this.last[name] < gap) return false; this.last[name] = t; return !!this.ctx; },
@@ -168,19 +168,20 @@ function initScene() {
   fxAddTo(scene); pedsAddTo(scene); initHeli(); boomAddTo(scene);
 }
 function applyTime() {
-  const T = TIMES[settings.time] || TIMES.day; applyBloomTime(); initClouds();
+  const T = envCompute(), key = ENV.key; applyBloomTime(); initClouds();   // ENV.T: the time of day blended with the weather (69w-weather.js)
   const u = sky.material.uniforms; u.top.value = C(T.sky[0]); u.hor.value = C(T.sky[1]); u.bot.value = C(T.fog);   // below the horizon the sky matches the fog, so there's no seam when you're high up
   u.sunDir.value.set(...T.sunDir).normalize(); u.sunCol.value = C(T.sun).multiplyScalar(T.sunVis);
   scene.fog.color = C(T.fog);
-  WMAT.far.color = C(T.fog).lerp(new THREE.Color(1, 1, 1), 0.35); WMAT.far.emissive = C(T.fog).multiplyScalar(settings.time === 'night' ? 0.15 : 0.32);
+  WMAT.far.color = C(T.fog).lerp(new THREE.Color(1, 1, 1), 0.35); WMAT.far.emissive = C(T.fog).multiplyScalar(key === 'night' ? 0.15 : 0.32);
   sun.color = C(T.sun); sun.intensity = T.sunI; hemi.color = C(T.hemi[0]); hemi.groundColor = C(T.hemi[1]); hemi.intensity = T.hemi[2];
   WMAT.office.emissiveIntensity = T.win; WMAT.house.emissiveIntensity = T.win * 0.8; WMAT.brick.emissiveIntensity = T.win * 0.75; WMAT.glass.emissiveIntensity = T.win * 0.5; WMAT.shopf.emissiveIntensity = T.win * 0.42; WMAT.bill.emissiveIntensity = T.win * 0.45;
   WMAT.lampHead.color = T.lamps > 0 ? new THREE.Color(1.6, 1.05, 0.5) : C('#55554f');
   WMAT.pool2.opacity = T.lamps * 0.5;
   MAT.head.emissiveIntensity = T.head; MAT.tail.emissiveIntensity = T.tail;
   renderer.toneMappingExposure = T.exp; starPts.material.opacity = T.stars;
-  if (!envCache[settings.time]) envCache[settings.time] = makeEnv(T.env, [{ w: 40, h: 40, c: T.sun, i: 1.5 * T.sunVis + 0.2, pos: T.sunDir.map(x => x * 40) }]);
-  scene.environment = envCache[settings.time];
+  const ek = key + (ENV.w.over > 0.5 ? '-overcast' : '');   // reflections: one map per look, made the first time it's needed
+  if (!envCache[ek]) envCache[ek] = makeEnv(T.env, [{ w: 40, h: 40, c: T.sun, i: 1.5 * T.sunVis + 0.2, pos: T.sunDir.map(x => x * 40) }]);
+  if (scene.environment !== envCache[ek]) scene.environment = envCache[ek];
   headSpot.intensity = T.glow > 0.5 ? 2.4 : 0;
   for (const m of ptMats) m.uniforms.uFogColor.value.copy(scene.fog.color);
 }
@@ -335,14 +336,14 @@ function updateCamera(dt) {
   const scale = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   for (const m of ptMats) m.uniforms.uScale.value = scale;
   sky.position.copy(camera.position); starPts.position.copy(camera.position);
-  const T = TIMES[settings.time];
+  const T = TNOW();
   const shY = Math.min(F.y, heightAt(F.x, F.z) + 24);   // keep the shadow box on the ground under you, not up in the sky
   sun.position.set(F.x + T.sunDir[0] * 160, shY + T.sunDir[1] * 160, F.z + T.sunDir[2] * 160); sun.target.position.set(F.x, shY, F.z);
 }
 // ---------------- glow sprites ----------------
 const _gc = new THREE.Color();
 function updateGlow() {
-  const T = TIMES[settings.time], gl = FX.glow; gl.begin();
+  const T = TNOW(), gl = FX.glow; gl.begin();
   const cx = camera.position.x, cz = camera.position.z;
   const flash = (GT * 6) % 2 < 1;
   MAT.sirenR.color.setRGB(flash ? 1.6 : 0.25, flash ? 0.15 : 0.02, flash ? 0.15 : 0.02);
@@ -628,7 +629,7 @@ function readInput(P) {
 function loadWorld(id) {
   if (W && W.group) { scene.remove(W.group); W.group.traverse(o => { if (o.geometry) o.geometry.dispose(); }); }
   for (const v of [...VEH.list]) v.remove();
-  G.player = null; heroHide(); clearPeds(); clearDebris(); clearSkids();
+  G.player = null; heroHide(); clearPeds(); clearDebris(); clearRubble(); clearSkids();
   for (const k of ['smoke', 'blood', 'debris', 'fire']) FX[k].clear();
   PROPS.active.length = 0; PROPS.emitters.length = 0; clearBoom();
   W = genWorld(id);
@@ -739,7 +740,7 @@ function togglePause(force) {
   $('#pause').hidden = !APP.paused; $('#touch').hidden = APP.paused || !APP.touch;
   rbxPointer(!APP.paused);   // free the mouse for the pause menu, take it back on resume
   if (APP.paused) {
-    SFX.hornSet(false); hornOn = false;
+    SFX.hornSet(false); hornOn = false; SFX.loopTo('rain', 0, 0, 0, 0.1);
     $('#pAbandon').hidden = !MIS.active;
     const s = G.stats, u = settings.units === 'mph';
     $('#pstats').innerHTML = `<span>Cash</span><b>$${MIS.cash.toLocaleString()}</b><span>Missions passed here</span><b>${MIS.defs.filter(d => MIS.done[d.id]).length} of ${MIS.defs.length}</b><span>Pedestrians hit</span><b>${s.peds}</b><span>Cars wrecked</span><b>${s.cars}</b><span>Police cruisers wrecked</span><b>${s.cops}</b><span>Street furniture flattened</span><b>${s.props}</b><span>Highest wanted level</span><b>${s.maxStars} ★</b><span>Longest jump</span><b>${s.bestAir.toFixed(1)} s · ${u ? Math.round(s.bestAirDist * 3.281) + ' ft' : Math.round(s.bestAirDist) + ' m'}</b>`;
@@ -761,16 +762,16 @@ function gameUpdate(rdt) {
   for (let s = 0; s < sub; s++) { for (const v of VEH.list) { stepVehicle(v, h); collideStatic(v); } collideVehicles(); }
   netUpdate(dt); updatePlanes(dt);
   vehiclePropHits(); updateProps(dt); updateBoom(dt); updateStructs(dt);
-  updateShops(dt); updateStores(dt); updateExtras(dt); updateMilitary(dt); updateAirport(dt); updateKids(dt); updateGfx(dt); updatePeds(dt); syncChute(dt); updateDebris(dt); updateWeapons(dt);
+  updateShops(dt); updateStores(dt); updateExtras(dt); updateMilitary(dt); updateAirport(dt); updateKids(dt); updateGfx(dt); updatePeds(dt); syncChute(dt); updateDebris(dt); updateRubble(dt); updateWeapons(dt);
   updateWanted(dt); manageTraffic(dt); updateHeli(dt); updateMissions(dt); updateTestZone(dt);
   for (const v of VEH.list) { vehicleWater(v, dt); v.syncModel(dt); vehicleEffects(v, dt); }
   FX.smoke.update(dt); FX.blood.update(dt); FX.debris.update(dt); FX.fire.update(dt); DECALS.update(dt);
   updateTrafficLights();
-  updateCamera(rdt); updateTreeTiles(); updateGlow(); SFX.update(dt); updateHUD(rdt);
+  updateCamera(rdt); updateTreeTiles(); envUpdate(rdt); updateGlow(); SFX.update(dt); updateHUD(rdt);
   const slowOn = G.slowmo > 0 && !G.down;
   if (slowOn !== HUD.slowOn) { HUD.slowOn = slowOn; $('#ui').classList.toggle('slowmo', slowOn); if (!G.down) renderer.domElement.style.filter = slowOn ? 'saturate(.55) contrast(1.12)' : ''; }
   const Q = G.player;
-  if (Q && Q.model.tailMat !== MAT.tail) Q.model.tailMat.emissiveIntensity = (Q.input.brake > 0.1 && Q.vf > 0.3) ? 3.5 : TIMES[settings.time].tail;
+  if (Q && Q.model.tailMat !== MAT.tail) Q.model.tailMat.emissiveIntensity = (Q.input.brake > 0.1 && Q.vf > 0.3) ? 3.5 : TNOW().tail;
 }
 // ---------------- menus ----------------
 function endSlowmo() { G.slowmo = 0; HUD.slowOn = false; $('#ui').classList.remove('slowmo'); }
@@ -781,7 +782,7 @@ function showMenu() {
   endSlowmo();
   APP.mode = 'menu'; APP.paused = false;
   $('#menu').hidden = false; $('#garage').hidden = true; $('#pause').hidden = true; $('#hud').hidden = true; $('#touch').hidden = true; $('#banner').hidden = true;
-  renderer.domElement.style.filter = ''; SFX.hornSet(false);
+  renderer.domElement.style.filter = ''; SFX.hornSet(false); SFX.loopTo('rain', 0, 0, 0, 0.1);
   garageSetCar(carCfg); garage.dist = 8.6;
   for (const c of $$('.mapcard')) c.setAttribute('aria-checked', String(c.dataset.map === settings.map));
 }
@@ -863,7 +864,8 @@ const SET_SCHEMA = [
   { k: 'fps', label: 'Show FPS', sub: 'Frames per second, at the top of the screen', type: 'seg', opts: [['off', 'Off'], ['on', 'On']] },
   { k: 'camStyle', label: 'On-foot camera', sub: 'Roblox: drag or Ctrl shift-lock to look, scroll to zoom. Classic: the camera follows behind you', type: 'seg', opts: [['roblox', 'Roblox'], ['classic', 'Classic']] },
   { k: 'slowmo', label: 'Crash slow-mo', sub: 'Cinematic slow motion on big crashes and rollovers', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
-  { k: 'time', label: 'Time of day', type: 'seg', opts: [['day', 'Day'], ['sunset', 'Sunset'], ['night', 'Night']] },
+  { k: 'time', label: 'Time of day', sub: 'Changes: a full day and night every 20 minutes', type: 'seg', opts: [['cycle', 'Changes'], ['day', 'Day'], ['sunset', 'Sunset'], ['night', 'Night']] },
+  { k: 'weather', label: 'Weather', sub: 'Changes: sun, cloud, rain, thunderstorms with lightning, fog, and sun showers with rainbows', type: 'seg', opts: [['cycle', 'Changes'], ['clear', 'Clear'], ['rain', 'Rain'], ['storm', 'Storm'], ['fog', 'Fog'], ['shower', 'Rainbow']] },
   { k: 'quality', label: 'Graphics', sub: 'Shadows, resolution, draw distance', type: 'seg', opts: [['low', 'Low'], ['medium', 'Medium'], ['high', 'High']] },
   { k: 'bloom', label: 'Glow', sub: 'Neon, headlights and explosions glow (Medium and High graphics)', type: 'seg', opts: [['on', 'On'], ['off', 'Off']] },
   { k: 'units', label: 'Speed units', type: 'seg', opts: [['kmh', 'km/h'], ['mph', 'mph']] },
@@ -891,7 +893,7 @@ function renderSettings() {
 }
 function onSettingChange(k) {
   if (k === 'volume') SFX.setVolume(settings.volume);
-  if (k === 'time' && APP.worldId) applyTime();
+  if ((k === 'time' || k === 'weather') && APP.worldId) applyTime();
   if (k === 'quality') applyQuality();
   if (k === 'police' && settings.police === 'off') resetWanted();
   if (k === 'guns' && settings.guns === 'off') selectWeapon(0);

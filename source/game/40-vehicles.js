@@ -94,6 +94,7 @@ class Vehicle {
 function stepVehicle(v, dt) {
   if (v.remote) return;
   if (v.loop) { loopStep(v, dt); return; }
+  if (v.zapT > 0) { v.zapT -= dt; v.input.throttle = 0; v.input.nitro = 0; v.input.jet = 0; }   // struck by lightning: the electrics are out
   const TB = BODIES[v.cfg.body];
   v.jetOn = !!(TB && TB.thrusters) && !v.wrecked && !v.sunk && !!v.input.jet && v.air > 0.01 && !v.tumble && !v.flipped;
   if (v.onGround && !v.jetOn) v.jetUsed = false;
@@ -122,12 +123,12 @@ function stepVehicle(v, dt) {
     if (rr > 0) { const c = rr * dt; vf = Math.abs(vf) <= c ? 0 : vf - Math.sign(vf) * c; }
     if (inp.hand) { const c = 6 * dt; vf = Math.abs(vf) <= c ? 0 : vf - Math.sign(vf) * c; }
     if (park) { const c = 9 * dt; vf = Math.abs(vf) <= c ? 0 : vf - Math.sign(vf) * c; if (vf === 0) { vr *= Math.exp(-14 * dt); v.av *= Math.exp(-14 * dt); } }
-    const lg = (inp.hand ? 1.4 : 8.5) * st.grip * (v.wrecked ? 0.5 : 1) * (1 - lost * 0.22);
+    const lg = (inp.hand ? 1.4 : 8.5) * st.grip * wetGrip() * (v.wrecked ? 0.5 : 1) * (1 - lost * 0.22);   // wet roads grip less
     v.slip = Math.abs(vr);
     vr *= Math.exp(-lg * dt);
     const sa = clamp(v.steer + v.pull, -1.2, 1.2) * st.steerMax / (1 + Math.abs(vf) / st.steerFall);
     let yaw = vf * Math.tan(sa) / st.wb;
-    const yawMax = st.grip * (inp.hand ? 30 : 19) * (v.bike ? 1.15 : 1) / Math.max(3, Math.abs(vf));
+    const yawMax = st.grip * wetGrip() * (inp.hand ? 30 : 19) * (v.bike ? 1.15 : 1) / Math.max(3, Math.abs(vf));
     yaw = clamp(yaw, -yawMax, yawMax);
     if (v.tank) yaw = yaw * 0.4 + v.steer * 0.8 * clamp(1 - Math.abs(vf) / 14, 0.3, 1);
     if (inp.hand && Math.abs(vf) > 5) yaw *= 1.4;
@@ -603,7 +604,8 @@ function explode(x, y, z, power, src, self, big, remote) {
     if (p.type === 'pump') { if (remote) { if (d < 2.5) p.st = 3; } else if (d < 6 * Math.max(1, power * 0.8)) { p.st = 3; boomLater(rand(0.2, 0.5), () => pumpBlast(p, src)); } }
     else if (d < 6 * power) knockProp(p, { vx: (p.x - x) * 2, vz: (p.z - z) * 2, kind: 'x' }, 10);
   }
-  if (!remote && !BOOM.pug) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);   // a pug bomb levels everything in reach on its own (pugLevel)
+  if (!remote && !BOOM.pug) damageStructsAt(x, y, z, power * (big ? 1.6 : 1), src);
+  rubbleBlast(x, y, z, big ? 40 : 10 * power, power);   // a pug bomb levels everything in reach on its own (pugLevel)
   damagePlanesAt(x, y, z, big ? 30 : 7 * power, power, src);
   if (HELI.active && !HELI.down) { const d = Math.hypot(HELI.x - x, HELI.y - y, HELI.z - z), R2 = (big ? 30 : 9 * power); if (d < R2) heliDamage((1 - d / R2) * 260 * power, isPlayerSrc(src)); }
 }
@@ -623,6 +625,7 @@ function jetPlumes(v) {
 }
 function vehicleEffects(v, dt) {
   const hp = v.health / v.maxHp, fx = Math.sin(v.h), fz = Math.cos(v.h);
+  if (v.zapT > 0 && Math.random() < 0.35) sparks(v.x + rand(-1, 1), v.y + rand(0.4, 1.4), v.z + rand(-1, 1), 3);   // sparks crawl over a car that took a lightning strike
   if (v.jetOn && !v.jetFX && v.model && v.model.root) v.jetFX = jetPlumes(v);
   if (v.jetFX) { v.jetFX.visible = !!v.jetOn; if (v.jetOn) for (const c of v.jetFX.children) { const k = 0.85 + Math.random() * 0.3; c.scale.set(k, 0.8 + Math.random() * 0.45, k); } }
   const d2 = (v.x - camera.position.x) ** 2 + (v.z - camera.position.z) ** 2;
@@ -1033,9 +1036,9 @@ function updateHeli(dt) {
   if (want) {
     const gx = P.x, gz = P.z, gy = heightAt(gx, gz);
     const bx = gx - HELI.x, by = gy - HELI.y, bz = gz - HELI.z, bl = Math.hypot(bx, by, bz);
-    HELI.beam.position.set(HELI.x, HELI.y - 1, HELI.z); HELI.beam.scale.set(3, bl, 3); HELI.beam.material.opacity = TIMES[settings.time].glow > 0.5 ? 0.06 : 0.025;
+    HELI.beam.position.set(HELI.x, HELI.y - 1, HELI.z); HELI.beam.scale.set(3, bl, 3); HELI.beam.material.opacity = TNOW().glow > 0.5 ? 0.06 : 0.025;
     _v1.set(-bx, -by, -bz).normalize(); HELI.beam.quaternion.setFromUnitVectors(UP, _v1);
-    HELI.spot.position.set(gx, gy + 0.08, gz); HELI.spot.scale.set(9, 1, 9); HELI.spot.material.opacity = TIMES[settings.time].glow > 0.3 ? 0.55 : 0.15;
+    HELI.spot.position.set(gx, gy + 0.08, gz); HELI.spot.scale.set(9, 1, 9); HELI.spot.material.opacity = TNOW().glow > 0.3 ? 0.55 : 0.15;
     HELI.beam.visible = HELI.spot.visible = true;
   } else { HELI.beam.visible = HELI.spot.visible = false; if (Math.hypot(HELI.x - P.x, HELI.z - P.z) > 300) { HELI.active = false; scene.remove(HELI.obj, HELI.beam, HELI.spot); } }
 }

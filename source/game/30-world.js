@@ -174,12 +174,13 @@ function cityBlock(W, b, rng) {
     let h = lerp(b.hMax || cc.max, b.hMin || cc.min, clamp(cd / cc.r, 0, 1)) * (0.4 + rng() * 0.95); if (rng() < 0.07) h *= 1.7; h = Math.min(220, Math.max(7.2, Math.round(h / 3.6) * 3.6));
     const col = rp(rng, CITY_COLORS);
     W.bldgs.push({ x0, z0, x1, z1, y: b.h, h, col: b.tex === 'house' ? rp(rng, PERTH_HOUSE) : col, tex: b.tex || 'office', street: b.tex !== 'house' });
-    W.addBox(x0, z0, x1, z1, b.h + h, 'b');
+    const base = W.addBox(x0, z0, x1, z1, b.h + h, 'b');
     let topY = b.h + h, tx0 = x0, tx1 = x1, tz0 = z0, tz1 = z1;
     if (h > 36 && rng() < 0.55) {
       const ins = Math.min(x1 - x0, z1 - z0) * 0.18, h2 = Math.round(h * (0.15 + rng() * 0.3) / 3.6) * 3.6 + 3.6;
       tx0 = x0 + ins; tx1 = x1 - ins; tz0 = z0 + ins; tz1 = z1 - ins;
       W.bldgs.push({ x0: tx0, z0: tz0, x1: tx1, z1: tz1, y: topY, h: h2, col, tex: 'office' }); topY += h2;
+      const t = W.addBox(tx0 + 0.08, tz0 + 0.08, tx1 - 0.08, tz1 - 0.08, topY, 'b'); t.tierOf = base;   // the narrower top section is solid too (it used to have no hitbox)
     }
     // roof details
     const dc = '#5d6066';

@@ -14,3 +14,5 @@ Object.assign(window.__havoc, { DYN, dynRes, updateTreeTiles });
 Object.assign(window.__havoc, { STY, TZ, addStyle, loopPoint, shapeLocal });
 Object.assign(window.__havoc, { stepVehicle, collideStatic });
 Object.assign(window.__havoc, { pugRain, pugToggle, throwPug, pugNear, pugBlast, PUG_SITES });
+Object.assign(window.__havoc, { ENV, envCompute, lightningStrike, lightningHitCar, TNOW, timeKey, clockU, wxPick, WX });
+Object.assign(window.__havoc, { RUB, rubbleChunk, rubbleBlast, structChunks, collapseStruct, hitStruct, damageStructsAt });

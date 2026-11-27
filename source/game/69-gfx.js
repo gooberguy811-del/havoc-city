@@ -30,8 +30,8 @@ function makeComposer() {
   applyBloomTime();
 }
 function applyBloomTime() {
-  if (!POST.bloom) return; const B = BLOOM_BY_TIME[settings.time] || BLOOM_BY_TIME.day; POST.bloom.strength = B[0]; POST.bloom.radius = B[1]; POST.bloom.threshold = B[2];
-  if (POST.grade) { const G2 = GRADE_BY_TIME[settings.time] || GRADE_BY_TIME.day, u = POST.grade.uniforms; u.lift.value.set(...G2.lift); u.gain.value.set(...G2.gain); u.sat.value = G2.sat; u.contrast.value = G2.con; }
+  if (!POST.bloom) return; const B = BLOOM_BY_TIME[timeKey()] || BLOOM_BY_TIME.day; POST.bloom.strength = B[0]; POST.bloom.radius = B[1]; POST.bloom.threshold = B[2];
+  if (POST.grade) { const G2 = GRADE_BY_TIME[timeKey()] || GRADE_BY_TIME.day, u = POST.grade.uniforms; u.lift.value.set(...G2.lift); u.gain.value.set(...G2.gain); u.sat.value = G2.sat; u.contrast.value = G2.con; }
 }
 // colour grade: a warm, sun-baked look with slightly lifted shadows (works on the final display colours)
 const GRADE_BY_TIME = { day: { lift: [0.03, 0.022, 0.006], gain: [1.04, 1.0, 0.92], sat: 1.05, con: 0.16 }, sunset: { lift: [0.045, 0.016, 0.0], gain: [1.08, 0.97, 0.86], sat: 1.1, con: 0.18 }, night: { lift: [0.0, 0.012, 0.035], gain: [0.96, 1.0, 1.08], sat: 0.9, con: 0.12 } };
@@ -62,7 +62,7 @@ function initFlare() {
 const _fl = new THREE.Vector3();
 function updateFlare(dt) {
   if (!FLARE.el) initFlare();
-  const T = TIMES[settings.time] || TIMES.day, on = APP.mode === 'game' && T.sunVis > 0.5 && settings.quality !== 'low' && !G.down;
+  const T = TNOW(), on = APP.mode === 'game' && T.sunVis > 0.5 && settings.quality !== 'low' && !G.down;
   let want = 0, sx = 0, sy = 0;
   if (on) {
     _fl.set(...T.sunDir).normalize();
@@ -73,7 +73,7 @@ function updateFlare(dt) {
       FLARE.occ = hit;
     }
     _v4.copy(_fl).multiplyScalar(1000).add(camera.position).project(camera);
-    if (_v4.z < 1 && Math.abs(_v4.x) < 1.25 && Math.abs(_v4.y) < 1.25 && !FLARE.occ) { want = (1 - Math.min(1, Math.hypot(_v4.x, _v4.y) * 0.55)) * (settings.time === 'sunset' ? 1 : 0.8); sx = _v4.x; sy = _v4.y; }
+    if (_v4.z < 1 && Math.abs(_v4.x) < 1.25 && Math.abs(_v4.y) < 1.25 && !FLARE.occ) { want = (1 - Math.min(1, Math.hypot(_v4.x, _v4.y) * 0.55)) * (timeKey() === 'sunset' ? 1 : 0.8); sx = _v4.x; sy = _v4.y; }
     else { sx = FLARE.sx || 0; sy = FLARE.sy || 0; }
   }
   FLARE.vis = lerp(FLARE.vis, want, Math.min(1, dt * 6)); if (want) { FLARE.sx = sx; FLARE.sy = sy; }
@@ -108,10 +108,10 @@ function updateGfx(dt) {
   const tx = m.material.map; tx.offset.x = (tx.offset.x + dt * 0.0016) % 1; tx.offset.y = (tx.offset.y + dt * 0.0007) % 1;
   // high up (parachute, planes, swinging) the clouds would turn into a grey sheet: fade them out
   const camY = camera.position.y, hi = clamp(1 - (camY - 90) / 110, 0, 1);
-  const T = settings.time; m.material.color.set(T === 'night' ? '#3a4466' : T === 'sunset' ? '#ffc7a0' : '#ffffff'); m.material.opacity = (T === 'night' ? 0.35 : 0.85) * hi;
+  m.material.color.set(ENV.cloudCol); m.material.opacity = Math.min(1, ENV.cloudOp) * hi;   // colour and cover come from the time of day and the weather
   m.position.y = 420;
   // and push the fog back with altitude so the city stays visible below you
-  if (scene.fog) { const Q = QUALITY[settings.quality], alt = Math.max(0, camY - 35), far = Math.min(1450, Q.fog + alt * 3.4); if (Math.abs(scene.fog.far - far) > 1) { scene.fog.far = far; scene.fog.near = Q.fog * 0.22 + alt * 1.2; for (const pm of ptMats) { pm.uniforms.uFogNear.value = scene.fog.near; pm.uniforms.uFogFar.value = scene.fog.far; } } }
+  if (scene.fog) { const Q = QUALITY[settings.quality], alt = Math.max(0, camY - 35), fm = ENV.fogMul, far = Math.min(1450, Q.fog * fm + alt * 3.4); if (Math.abs(scene.fog.far - far) > 1) { scene.fog.far = far; scene.fog.near = Q.fog * 0.22 * fm + alt * 1.2; for (const pm of ptMats) { pm.uniforms.uFogNear.value = scene.fog.near; pm.uniforms.uFogFar.value = scene.fog.far; } } }
   m.visible = settings.quality !== 'low' && m.material.opacity > 0.01;
   updateFlare(dt);
   const v = $('#vignette'); if (v) { const on = APP.mode === 'game'; if (v.hidden === on) v.hidden = !on; }

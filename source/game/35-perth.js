@@ -129,10 +129,12 @@ function perthLandmarks(W, rng) {
     for (let k = 0; k < 6; k++) { const w = 7 - k * 1.05, h = 10.5; D.push([w, h, w, x, 7 + k * h + h / 2, z, k % 2 ? '#6e9cc0' : '#5f8fb0']); }
     for (const s of [1, -1]) D.push([1.0, 56, 7, x + s * 4.6, 30, z, '#b87333']);
     D.push([0.5, 8, 0.5, x, 74, z, '#d0d4d8']);
-    W.addBox(x - 5.5, z - 5.5, x + 5.5, z + 5.5, 72, 'b'); }
+    // hitboxes that follow the shape: the stone base, each narrowing glass section, the two copper sails
+    W.addBox(x - 5.5, z - 5.5, x + 5.5, z + 5.5, 7, 'b');
+    for (let k = 0; k < 6; k++) { const hw = (7 - k * 1.05) / 2; W.addBox(x - hw, z - hw, x + hw, z + hw, 7 + (k + 1) * 10.5, 'b'); }
+    for (const s of [1, -1]) W.addBox(x + s * 4.6 - 0.5, z - 3.5, x + s * 4.6 + 0.5, z + 3.5, 58, 'b'); }
   // Spanda sculpture
-  for (let k = 0; k < 9; k++) { const h = 16 + rng() * 13, a = (k - 4) * 0.2; D.push([0.45, h, 0.45, 18 + Math.sin(a) * 3, h / 2, 44 + Math.cos(a) * 1.5 - 1, '#f4f4f2', a]); }
-  W.addBox(14, 41, 22, 46, 20, 'b');
+  for (let k = 0; k < 9; k++) { const h = 16 + rng() * 13, a = (k - 4) * 0.2, px = 18 + Math.sin(a) * 3, pz = 44 + Math.cos(a) * 1.5 - 1; D.push([0.45, h, 0.45, px, h / 2, pz, '#f4f4f2', a]); W.addBox(px - 0.3, pz - 0.3, px + 0.3, pz + 0.3, h, 'p'); }   // each pole is solid, and you can walk between them
   // Elizabeth Quay footbridge + Matagarup Bridge arch (custom geometry)
   W.custom.push(L => {
     const deck = boxG(56, 0.5, 3, 55, 1.6, 43.5, C('#e9e9e6')); L.roof.push(deck);
